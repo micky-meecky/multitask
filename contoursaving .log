@@ -1,0 +1,188 @@
+Processed 780 images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+2023-03-23 11:37:41.552205
+*********************************
+
+Processed 780 images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-23 11:40:27.056074
+
+*********************************
+
+Processed 780 images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-23 11:44:18.009247
+
+*********************************
+
+Processed 780 images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-28 12:04:54.319766
+
+*********************************
+
+Processed 780 images to distance images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-28 13:45:52.938077
+
+*********************************
+
+Processed 780 images successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-28 13:46:29.634344
+
+*********************************
+
+Processed 780 imagescontoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/')
+
+2023-03-28 13:49:50.377930
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True)
+
+2023-03-28 14:04:36.422283
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 14:48:13.540119
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 15:03:27.850402
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 15:10:12.707531
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 15:29:51.793274
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 15:49:49.214958
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 16:21:47.296316
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 16:25:59.346077
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=True, distance_flag=False, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 16:29:43.240561
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 17:39:46.351384
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=False, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-28 17:58:16.610982
+
+*********************************
+
+Processed 780 images contoursaving successfully.
+Benign: 436, Malignant: 210, Normal: 133
+Total: 779
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=True, distance_flag=False, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/')
+
+2023-03-29 10:47:18.424260
+
+*********************************
+
