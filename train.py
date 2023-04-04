@@ -117,9 +117,14 @@ if __name__ == "__main__":
 
     # glob是python的一个模块，用于查找符合特定规则的文件路径名，glob.glob()返回所有匹配的文件路径列表
     # os.path.join(args.train_path, "*.jpg")是指在args.train_path路径下查找所有.jpg文件, 然后将其路径存入train_file_names
-    train_file_names = glob.glob(os.path.join(args.train_path, "*.jpg"))    # 获取训练集图片路径
+    train_path = args.train_path + str(args.fold_id) + '/train/images/'
+    val_path = args.train_path + str(args.fold_id) + '/validation/images/'
+    test_path = args.train_path + str(args.fold_id) + '/test/images/'
+    train_file_names = glob.glob(train_path + "*.png")
     random.shuffle(train_file_names)    # 打乱训练集图片路径
-    val_file_names = glob.glob(os.path.join(args.val_path, "*.jpg"))    # 获取验证集图片路径
+    val_file_names = glob.glob(os.path.join(args.val_path, "*.png"))    # 获取验证集图片路径
+    test_file_names = glob.glob(os.path.join(args.test_path, "*.png"))  # 获取测试集图片路径
+
 
     device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")  # 要么使用GPU，要么使用CPU
     model = build_model(args.model_type)    # 构建模型

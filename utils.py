@@ -67,11 +67,12 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
 def create_train_arg_parser():
 
     parser = argparse.ArgumentParser(description="train setup for segmentation")
-    parser.add_argument("--train_path", type=str, default='./train_path/', help="path to img jpg files")
-    parser.add_argument("--val_path", type=str, default='./val_path/', help="path to img jpg files")
-    parser.add_argument( "--model_type", type=str, default="unet", help="select model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument("--train_path", type=str, default='./train_path/fold/fold', help="path to img png files")
+    parser.add_argument("--val_path", type=str, default='./train_path/fold/fold', help="path to img png files")
+    parser.add_argument("--test_path", type=str, default='./train_path/fold/fold', help="path to img png files")
+    parser.add_argument( "--model_type", type=str, default="unet", help="model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
-    parser.add_argument("--distance_type", type=str, default="dist_mask", help="select distance transform type - dist_mask,dist_contour,dist_signed")
+    parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--batch_size", type=int, default=4, help="train batch size")
     parser.add_argument("--val_batch_size", type=int, default=4, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=150, help="number of epochs")
@@ -79,6 +80,8 @@ def create_train_arg_parser():
     parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
     parser.add_argument("--pretrained_model_path", type=str, default='./savemodel', help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--save_path", type=str, default='./savemodel', help="Model save path.")
+    parser.add_argument("--fold_id", type=int, default=1, help="fold id")
+    parser.add_argument("--fold_num", type=int, default=5, help="fold num")
     return parser
 
 

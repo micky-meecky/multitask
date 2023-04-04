@@ -1,9 +1,17 @@
 import os
+import shutil
+from time import sleep
+
 import cv2
 import numpy as np
 import argparse
 import datetime
-import matplotlib.pyplot as plt
+import csv
+from sklearn.model_selection import StratifiedKFold
+import pandas as pd
+from collections import Counter
+
+sep = os.sep # os.sep根据你所处的平台，自动采用相应的分隔符号
 
 class ContourDistance():
     def __init__(self, config):
@@ -168,28 +176,7 @@ class ContourDistance():
         else:
             return 0, 0, 1
 
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="train setup for segmentation")
-    parser.add_argument("--train_path", type=str, default='./train_path/p_images/', help="path to img png files")
-    parser.add_argument("--mask_path", type=str, default='./train_path/p_mask/', help="path to mask png files")
-    parser.add_argument("--save_contour_path", type=str, default='./train_path/p_contour/', help="contour png")
-    parser.add_argument("--save_distance_path", type=str, default='./train_path/p_distance/', help="distance png")
-    parser.add_argument("--project_name", type=str, default='contoursaving ', help="project name")
-    parser.add_argument("--log_path", type=str, default='./train_path/', help="project name")
-    parser.add_argument("--csv_file", type=str, default='./train_path/train.csv', help="csv_file")
-    parser.add_argument("--image_path", type=str, default='./train_path/p_image/', help="image_path")
-    parser.add_argument("--contour_flag", type=bool, default=True, help="if True, generate contour")
-    parser.add_argument("--distance_flag", type=bool, default=False, help="if True, generate distance")
-    parser.add_argument("--save_distance_path_D1", type=str, default='./train_path/p_distance_D1/',
-                        help="distance D1 png")
-    parser.add_argument("--save_distance_path_D2", type=str, default='./train_path/p_distance_D2/',
-                        help="distance D2 png")
-    parser.add_argument("--save_distance_path_D3", type=str, default='./train_path/p_distance_D3/',
-                        help="distance D3 png")
-
-    config = parser.parse_args()
+def CreateContourDistance(config):
     contour = ContourDistance(config)
 
     # 读取CSV文件，获取每张图片的序号和类别
@@ -250,3 +237,512 @@ if __name__ == "__main__":
     print("All images processed successfully.")
     # 保存log文件
     log = f"Processed {len(os.listdir(contour.image_path))} images successfully."
+
+
+def DatasetDivided(config):
+    # Todo: 读取csv文件，将图片分为训练集、验证集和测试集
+
+
+
+
+    pass
+
+def readCsv(csvfname):
+    # read csv to list of lists
+    print(csvfname)
+    with open(csvfname, 'r',) as csvf:
+        reader = csv.reader(csvf)
+        csvlines = list(reader)
+    return csvlines
+
+def get_fold_filelist(csv_file, K=3, fold=1, random_state=2020, validation=False, validation_r = 0.2):
+    """
+    获取分折结果的API（基于size分3层的类别平衡分折）
+    :param csv_file: 带有ID、CATE、size的文件
+    :param K: 分折折数
+    :param fold: 返回第几折,从1开始
+    :param random_state: 随机数种子, 固定后每次实验分折相同(注意,sklearn切换版本可能会导致相同随机数种子产生不同分折结果)
+    :param validation: 是否需要验证集（从训练集随机抽取部分数据当作验证集）
+    :param validation_r: 抽取出验证集占训练集的比例
+    :return: train和test的list，带有label和size
+    """
+    CTcsvlines = readCsv(csv_file)
+    header = CTcsvlines[0]
+    print('header', header)
+    nodules = CTcsvlines[1:]
+
+    # 提取size的三分点
+    sizeall = [int(i[2]) for i in nodules]
+    sizeall.sort()  # 按升序排列
+    low_mid_thre = sizeall[int(len(sizeall)*1/3)]
+    mid_high_thre = sizeall[int(len(sizeall)*2/3)]
+
+    # 根据size三分位数分为low，mid，high三组
+
+    low_size_list = [i for i in nodules if int(i[2]) < low_mid_thre]
+    mid_size_list = [i for i in nodules if int(i[2]) < mid_high_thre and int(i[2]) >= low_mid_thre]
+    high_size_list = [i for i in nodules if int(i[2]) >= mid_high_thre]
+
+    # 将lable划分为三组
+    low_label = [int(i[1]) for i in low_size_list]
+    mid_label = [int(i[1]) for i in mid_size_list]
+    high_label = [int(i[1]) for i in high_size_list]
+
+
+    low_fold_train = []
+    low_fold_test = []
+
+    mid_fold_train = []
+    mid_fold_test = []
+
+    high_fold_train = []
+    high_fold_test = []
+
+    sfolder = StratifiedKFold(n_splits=K, random_state=random_state, shuffle=True)
+    for train, test in sfolder.split(low_label, low_label):
+        low_fold_train.append([low_size_list[i] for i in train])
+        low_fold_test.append([low_size_list[i] for i in test])
+
+    sfolder = StratifiedKFold(n_splits=K, random_state=random_state, shuffle=True)
+    for train, test in sfolder.split(mid_label, mid_label):
+        mid_fold_train.append([mid_size_list[i] for i in train])
+        mid_fold_test.append([mid_size_list[i] for i in test])
+
+    sfolder = StratifiedKFold(n_splits=K, random_state=random_state, shuffle=True)
+    for train, test in sfolder.split(high_label, high_label):
+        high_fold_train.append([high_size_list[i] for i in train])
+        high_fold_test.append([high_size_list[i] for i in test])
+
+    if validation is False: # 不设置验证集，则直接返回
+        train_set = low_fold_train[fold-1]+mid_fold_train[fold-1]+high_fold_train[fold-1]
+        test_set = low_fold_test[fold-1]+mid_fold_test[fold-1]+high_fold_test[fold-1]
+        return [train_set, test_set]
+    else:  # 设置验证集合，则从训练集“类别 且 size平衡地”抽取一定数量样本做验证集
+        # 分离第fold折各size分层的正负以及正常组织样本，其label分别为1，0，2
+        low_fold_train_p = [i for i in low_fold_train[fold-1] if int(i[1]) == 1]
+        low_fold_train_n = [i for i in low_fold_train[fold-1] if int(i[1]) == 0]
+        low_fold_train_o = [i for i in low_fold_train[fold-1] if int(i[1]) == 2]    # o for other
+
+
+        mid_fold_train_p = [i for i in mid_fold_train[fold-1] if int(i[1]) == 1]
+        mid_fold_train_n = [i for i in mid_fold_train[fold-1] if int(i[1]) == 0]
+        mid_fold_train_o = [i for i in mid_fold_train[fold-1] if int(i[1]) == 2]
+
+        high_fold_train_p = [i for i in high_fold_train[fold-1] if int(i[1]) == 1]
+        high_fold_train_n = [i for i in high_fold_train[fold-1] if int(i[1]) == 0]
+        high_fold_train_o = [i for i in high_fold_train[fold-1] if int(i[1]) == 2]
+
+        # 抽取出各size层验证集并组合
+        validation_set = low_fold_train_p[0:int(len(low_fold_train_p) * validation_r)] + \
+                         low_fold_train_n[0:int(len(low_fold_train_n) * validation_r)] + \
+                         low_fold_train_o[0:int(len(low_fold_train_o) * validation_r)] + \
+                            mid_fold_train_p[0:int(len(mid_fold_train_p) * validation_r)] + \
+                            mid_fold_train_n[0:int(len(mid_fold_train_n) * validation_r)] + \
+                            mid_fold_train_o[0:int(len(mid_fold_train_o) * validation_r)] + \
+                            high_fold_train_p[0:int(len(high_fold_train_p) * validation_r)] + \
+                            high_fold_train_n[0:int(len(high_fold_train_n) * validation_r)] + \
+                            high_fold_train_o[0:int(len(high_fold_train_o) * validation_r)]
+
+        # 抽取出各size层训练集并组合
+        train_set = low_fold_train_p[int(len(low_fold_train_p) * validation_r):] + \
+                         low_fold_train_n[int(len(low_fold_train_n) * validation_r):] + \
+                            low_fold_train_o[int(len(low_fold_train_o) * validation_r):] + \
+                         mid_fold_train_p[int(len(mid_fold_train_p) * validation_r):] + \
+                         mid_fold_train_n[int(len(mid_fold_train_n) * validation_r):] + \
+                            mid_fold_train_o[int(len(mid_fold_train_o) * validation_r):] + \
+                         high_fold_train_p[int(len(high_fold_train_p) * validation_r):] + \
+                         high_fold_train_n[int(len(high_fold_train_n) * validation_r):] + \
+                            high_fold_train_o[int(len(high_fold_train_o) * validation_r):]
+
+        test_set = low_fold_test[fold-1]+mid_fold_test[fold-1]+high_fold_test[fold-1]
+
+        # 那我如果还要返回哪些id的图片作为了训练集哪些作为了验证集和测试集呢，该怎么添加代码？
+        # 你可以在这里添加代码，将训练集、验证集和测试集的id返回，以便在之后的代码中使用
+        # 例如：return [train_set, validation_set, test_set, train_id, validation_id, test_id]
+
+
+        return [train_set, validation_set, test_set]
+
+
+def DivideData(config):
+
+    csv_path = config.csv_file
+    K = config.K
+    fold = config.fold
+    validation = config.validation
+    validation_r = config.validation_r
+
+    # 划分数据集
+    train_set, validation_set, test_set = get_fold_filelist(csv_path, K, fold, validation, validation_r)
+
+    # 将train_set按照id号排序
+    train_set = sorted(train_set, key=lambda x: int(x[0][:-4]))
+    validation_set = sorted(validation_set, key=lambda x: int(x[0][:-4]))
+    test_set = sorted(test_set, key=lambda x: int(x[0][:-4]))
+
+
+    # 读取训练集、验证集和测试集的id
+    train_id = [i[0] for i in train_set]
+    validation_id = [i[0] for i in validation_set]
+    test_id = [i[0] for i in test_set]
+
+    # 读取训练集、验证集和测试集的label
+    train_label = [i[1] for i in train_set]
+    validation_label = [i[1] for i in validation_set]
+    test_label = [i[1] for i in test_set]
+
+    # 读取训练集、验证集和测试集的size
+    train_size = [i[2] for i in train_set]
+    validation_size = [i[2] for i in validation_set]
+    test_size = [i[2] for i in test_set]
+
+    # 将训练集、验证集和测试集的id、label和size汇总起来保存到一个log文件中
+    # 检测log文件夹是否存在，存在则删除，不存在则创建
+    log_name = config.divide_log_name.split('/')[-1]
+    # if os.path.exists(config.log_path + log_name + '_' + str(K) + '.txt'):
+    #     shutil.rmtree(config.log_path + log_name + '_' + str(K) + '.txt')
+
+    divided_log_path = os.path.join(config.log_path + log_name + '_' + str(fold) + '.txt')
+    with open(divided_log_path, 'w') as f:
+        '''
+        格式如下：
+        train set：
+        id: 1, label: 0, size: 0
+        id: 2, label: 1, size: 1
+        ...
+
+        validation set：
+        id: 1, label: 0, size: 0
+        id: 2, label: 1, size: 1
+        ...
+
+        test set：
+        id: 1, label: 0, size: 0
+        id: 2, label: 1, size: 1
+        ...
+
+        total:
+        train set: label 0: 100, label 1: 100, label 2: 100
+        validation set: label 0: 100, label 1: 100, label 2: 100
+        test set: label 0: 100, label 1: 100, label 2: 100
+        '''
+        f.write("train set：\n")
+        for i, (id, label, size) in enumerate(zip(train_id, train_label, train_size)):
+            f.write(f"id: {id}, label: {label}, size: {size}\n")
+
+        f.write("\nvalidation set：\n")
+        for i, (id, label, size) in enumerate(zip(validation_id, validation_label, validation_size)):
+            f.write(f"id: {id}, label: {label}, size: {size}\n")
+
+        f.write("\ntest set：\n")
+        for i, (id, label, size) in enumerate(zip(test_id, test_label, test_size)):
+            f.write(f"id: {id}, label: {label}, size: {size}\n")
+
+        # 计算每个集合中每个标签的数量
+        train_label_counts = Counter(train_label)
+        validation_label_counts = Counter(validation_label)
+        test_label_counts = Counter(test_label)
+
+        sum = 0
+        f.write("\ntotal:\n")
+        f.write("train set: \n")
+        for label, count in sorted(train_label_counts.items()):
+            f.write(f"        label {label}: {count}")
+            sum += count
+        f.write(f"       train set total: {sum}")
+        sum = 0
+
+        f.write("\nvalidation set: \n")
+        for label, count in sorted(validation_label_counts.items()):
+            f.write(f"        label {label}: {count}")
+            sum += count
+        f.write(f"       validation set total: {sum}")
+        sum = 0
+
+        f.write("\ntest set: \n")
+        for label, count in sorted(test_label_counts.items()):
+            f.write(f"        label {label}: {count}")
+            sum += count
+        f.write(f"       test set total: {sum}")
+
+
+    # save_fold_path
+    save_fold_path = config.save_fold_path
+    if not os.path.exists(save_fold_path):
+        os.makedirs(save_fold_path)
+
+    # 在这个文件夹下新建五个文件夹，分别存放fold1、fold2、fold3、fold4、fold5
+    for i in range(K):
+        fold_path = os.path.join(save_fold_path, 'fold' + str(i + 1))
+        if not os.path.exists(fold_path):
+            os.makedirs(fold_path)
+
+    # 现在是在fold1中新建train、validation和test文件夹
+    for i in range(K):
+        fold_path = os.path.join(save_fold_path, 'fold' + str(i + 1))
+        train_path = os.path.join(fold_path, 'train')
+        validation_path = os.path.join(fold_path, 'validation')
+        test_path = os.path.join(fold_path, 'test')
+        if not os.path.exists(train_path):
+            os.makedirs(train_path)
+        if not os.path.exists(validation_path):
+            os.makedirs(validation_path)
+        if not os.path.exists(test_path):
+            os.makedirs(test_path)
+
+    # 再在每个train、validation和test文件夹下面新建images,mask,contour,dist_contour,contour_mask,dist_signed文件夹
+    for i in range(K):
+        fold_path = os.path.join(save_fold_path, 'fold' + str(i + 1))
+        train_path = os.path.join(fold_path, 'train')
+        validation_path = os.path.join(fold_path, 'validation')
+        test_path = os.path.join(fold_path, 'test')
+
+        train_images_path = os.path.join(train_path, 'images')
+        train_mask_path = os.path.join(train_path, 'mask')
+        train_contour_path = os.path.join(train_path, 'contour')
+        train_dist_contour_path = os.path.join(train_path, 'dist_contour')
+        train_dist_mask_path = os.path.join(train_path, 'dist_mask')
+        train_dist_signed_path = os.path.join(train_path, 'dist_signed')
+
+        validation_images_path = os.path.join(validation_path, 'images')
+        validation_mask_path = os.path.join(validation_path, 'mask')
+        validation_contour_path = os.path.join(validation_path, 'contour')
+        validation_dist_contour_path = os.path.join(validation_path, 'dist_contour')
+        validation_dist_mask_path = os.path.join(validation_path, 'dist_mask')
+        validation_dist_signed_path = os.path.join(validation_path, 'dist_signed')
+
+        test_images_path = os.path.join(test_path, 'images')
+        test_mask_path = os.path.join(test_path, 'mask')
+        test_contour_path = os.path.join(test_path, 'contour')
+        test_dist_contour_path = os.path.join(test_path, 'dist_contour')
+        test_dist_mask_path = os.path.join(test_path, 'dist_mask')
+        test_dist_signed_path = os.path.join(test_path, 'dist_signed')
+
+        if not os.path.exists(train_images_path):
+            os.makedirs(train_images_path)
+        if not os.path.exists(train_mask_path):
+            os.makedirs(train_mask_path)
+        if not os.path.exists(train_contour_path):
+            os.makedirs(train_contour_path)
+        if not os.path.exists(train_dist_contour_path):
+            os.makedirs(train_dist_contour_path)
+        if not os.path.exists(train_dist_mask_path):
+            os.makedirs(train_dist_mask_path)
+        if not os.path.exists(train_dist_signed_path):
+            os.makedirs(train_dist_signed_path)
+
+        if not os.path.exists(validation_images_path):
+            os.makedirs(validation_images_path)
+        if not os.path.exists(validation_mask_path):
+            os.makedirs(validation_mask_path)
+        if not os.path.exists(validation_contour_path):
+            os.makedirs(validation_contour_path)
+        if not os.path.exists(validation_dist_contour_path):
+            os.makedirs(validation_dist_contour_path)
+        if not os.path.exists(validation_dist_mask_path):
+            os.makedirs(validation_dist_mask_path)
+        if not os.path.exists(validation_dist_signed_path):
+            os.makedirs(validation_dist_signed_path)
+
+        if not os.path.exists(test_images_path):
+            os.makedirs(test_images_path)
+        if not os.path.exists(test_mask_path):
+            os.makedirs(test_mask_path)
+        if not os.path.exists(test_contour_path):
+            os.makedirs(test_contour_path)
+        if not os.path.exists(test_dist_contour_path):
+            os.makedirs(test_dist_contour_path)
+        if not os.path.exists(test_dist_mask_path):
+            os.makedirs(test_dist_mask_path)
+        if not os.path.exists(test_dist_signed_path):
+            os.makedirs(test_dist_signed_path)
+
+    # 现在是Fold1，将p_mask中的mask文件按照train_set, validation_set, test_set复制到对应的./train_path/fold1/...的mask文件夹下，其他的如images,contour,dist_contour,dist_mask,dist_signed也是如此
+    fold_idx = fold - 1
+    i = fold_idx
+    fold_path = os.path.join(save_fold_path, 'fold' + str(i + 1))
+    train_path = os.path.join(fold_path, 'train')
+    validation_path = os.path.join(fold_path, 'validation')
+    test_path = os.path.join(fold_path, 'test')
+
+    train_images_path = os.path.join(train_path, 'images')
+    train_mask_path = os.path.join(train_path, 'mask')
+    train_contour_path = os.path.join(train_path, 'contour')
+    train_dist_contour_path = os.path.join(train_path, 'dist_contour')
+    train_dist_mask_path = os.path.join(train_path, 'dist_mask')
+    train_dist_signed_path = os.path.join(train_path, 'dist_signed')
+
+    validation_images_path = os.path.join(validation_path, 'images')
+    validation_mask_path = os.path.join(validation_path, 'mask')
+    validation_contour_path = os.path.join(validation_path, 'contour')
+    validation_dist_contour_path = os.path.join(validation_path, 'dist_contour')
+    validation_dist_mask_path = os.path.join(validation_path, 'dist_mask')
+    validation_dist_signed_path = os.path.join(validation_path, 'dist_signed')
+
+    test_images_path = os.path.join(test_path, 'images')
+    test_mask_path = os.path.join(test_path, 'mask')
+    test_contour_path = os.path.join(test_path, 'contour')
+    test_dist_contour_path = os.path.join(test_path, 'dist_contour')
+    test_dist_mask_path = os.path.join(test_path, 'dist_mask')
+    test_dist_signed_path = os.path.join(test_path, 'dist_signed')
+
+    image_path = config.image_path
+    mask_path = config.mask_path
+    contour_path = config.save_contour_path
+    dist_contour_path = config.save_distance_path_D2
+    dist_mask_path = config.save_distance_path_D1
+    dist_signed_path = config.save_distance_path_D3
+
+
+    train_list = [image_path + i[0] for i in train_set]
+    validation_list = [image_path + i[0] for i in validation_set]
+    test_list = [image_path + i[0] for i in test_set]
+
+    train_list_mask = [mask_path + i[0] for i in train_set]
+    validation_list_mask = [mask_path + i[0] for i in validation_set]
+    test_list_mask = [mask_path + i[0] for i in test_set]
+
+    train_list_contour = [contour_path + i[0] for i in train_set]
+    validation_list_contour = [contour_path + i[0] for i in validation_set]
+    test_list_contour = [contour_path + i[0] for i in test_set]
+
+    train_list_dist_contour = [dist_contour_path + i[0] for i in train_set]
+    validation_list_dist_contour = [dist_contour_path + i[0] for i in validation_set]
+    test_list_dist_contour = [dist_contour_path + i[0] for i in test_set]
+
+    train_list_dist_mask = [dist_mask_path + i[0] for i in train_set]
+    validation_list_dist_mask = [dist_mask_path + i[0] for i in validation_set]
+    test_list_dist_mask = [dist_mask_path + i[0] for i in test_set]
+
+    train_list_dist_signed = [dist_signed_path + i[0] for i in train_set]
+    validation_list_dist_signed = [dist_signed_path + i[0] for i in validation_set]
+    test_list_dist_signed = [dist_signed_path + i[0] for i in test_set]
+
+
+
+    # 将train_set中的图片复制到train_images_path中
+    for i in train_list:
+        shutil.copy(i, train_images_path)
+    # 将validation_set中的图片复制到validation_images_path中
+    for i in validation_list:
+        shutil.copy(i, validation_images_path)
+    # 将test_set中的图片复制到test_images_path中
+    for i in test_list:
+        shutil.copy(i, test_images_path)
+    print('copy images done')
+
+    # 将train_set中的mask复制到train_mask_path中
+    for i in train_list_mask:
+        shutil.copy(i, train_mask_path)
+    # 将validation_set中的mask复制到validation_mask_path中
+    for i in validation_list_mask:
+        shutil.copy(i, validation_mask_path)
+    # 将test_set中的mask复制到test_mask_path中
+    for i in test_list_mask:
+        shutil.copy(i, test_mask_path)
+    print('copy mask done')
+
+    # 将train_set中的contour复制到train_contour_path中
+    for i in train_list_contour:
+        shutil.copy(i, train_contour_path)
+    # 将validation_set中的contour复制到validation_contour_path中
+    for i in validation_list_contour:
+        shutil.copy(i, validation_contour_path)
+    # 将test_set中的contour复制到test_contour_path中
+    for i in test_list_contour:
+        shutil.copy(i, test_contour_path)
+    print('copy contour done')
+
+
+    # 将train_set中的dist_contour复制到train_dist_contour_path中
+    for i in train_list_dist_contour:
+        shutil.copy(i, train_dist_contour_path)
+    # 将validation_set中的dist_contour复制到validation_dist_contour_path中
+    for i in validation_list_dist_contour:
+        shutil.copy(i, validation_dist_contour_path)
+    # 将test_set中的dist_contour复制到test_dist_contour_path中
+    for i in test_list_dist_contour:
+        shutil.copy(i, test_dist_contour_path)
+    print('copy dist_contour done')
+
+
+    # 将train_set中的dist_mask复制到train_dist_mask_path中
+    for i in train_list_dist_mask:
+        shutil.copy(i, train_dist_mask_path)
+    # 将validation_set中的dist_mask复制到validation_dist_mask_path中
+    for i in validation_list_dist_mask:
+        shutil.copy(i, validation_dist_mask_path)
+    # 将test_set中的dist_mask复制到test_dist_mask_path中
+    for i in test_list_dist_mask:
+        shutil.copy(i, test_dist_mask_path)
+    print('copy dist_mask done')
+
+
+    # 将train_set中的dist_signed复制到train_dist_signed_path中
+    for i in train_list_dist_signed:
+        shutil.copy(i, train_dist_signed_path)
+    # 将validation_set中的dist_signed复制到validation_dist_signed_path中
+    for i in validation_list_dist_signed:
+        shutil.copy(i, validation_dist_signed_path)
+    # 将test_set中的dist_signed复制到test_dist_signed_path中
+    for i in test_list_dist_signed:
+        shutil.copy(i, test_dist_signed_path)
+    print('copy dist_signed done')
+    sleep(1)
+
+    print("train_set: ", len(train_set))
+    print("validation_set: ", len(validation_set))
+    print("test_set: ", len(test_set))
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    # 读取配置文件，以及创建各个轮廓图距离图并保存
+    parser = argparse.ArgumentParser(description="train setup for segmentation")
+    parser.add_argument("--train_path", type=str, default='./train_path/p_images/', help="path to img png files")
+    parser.add_argument("--mask_path", type=str, default='./train_path/p_mask/', help="path to mask png files")
+    parser.add_argument("--save_contour_path", type=str, default='./train_path/p_contour/', help="contour png")
+    parser.add_argument("--save_distance_path", type=str, default='./train_path/p_distance/', help="distance png")
+    parser.add_argument("--project_name", type=str, default='contoursaving ', help="project name")
+    parser.add_argument("--log_path", type=str, default='./train_path/', help="project name")
+    parser.add_argument("--csv_file", type=str, default='./train_path/train.csv', help="csv_file")
+    parser.add_argument("--image_path", type=str, default='./train_path/p_image/', help="image_path")
+    parser.add_argument("--contour_flag", type=bool, default=True, help="if True, generate contour")
+    parser.add_argument("--distance_flag", type=bool, default=True, help="if True, generate distance")
+    parser.add_argument("--save_distance_path_D1", type=str, default='./train_path/p_distance_D1/',
+                        help="distance D1 png")
+    parser.add_argument("--save_distance_path_D2", type=str, default='./train_path/p_distance_D2/',
+                        help="distance D2 png")
+    parser.add_argument("--save_distance_path_D3", type=str, default='./train_path/p_distance_D3/',
+                        help="distance D3 png")
+
+    # 以下是划分数据集的参数
+    parser.add_argument("--K", type=int, default=5, help="K fold")
+    parser.add_argument("--fold", type=int, default=5, help="fold")
+    parser.add_argument("--validation", type=bool, default=False, help="if True, generate validation")
+    parser.add_argument("--validation_r", type=float, default=0.2, help="validation ratio")
+    parser.add_argument("--divide_log_name", type=str, default='./train_path/divide_log', help="divide log path")
+    parser.add_argument("--save_fold_path", type=str, default='./train_path/fold/', help="fold path")
+    parser.add_argument("--save_fold_path_f1", type=str, default='./train_path/fold_D1/', help="fold path")
+
+
+    # parser.add_argument("--random_state", type=int, default=1, help="random state")
+    # parser.add_argument("--batch_size", type=int, default=1, help="batch size")
+    # parser.add_argument("--num_workers", type=int, default=0, help="num workers")
+    # parser.add_argument("--epochs", type=int, default=100, help="epochs")
+
+
+    args = parser.parse_args()
+    config = args
+    # CreateContourDistance(config)
+    DivideData(config)
