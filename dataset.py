@@ -1,7 +1,12 @@
+import glob
+
 import torch
 import numpy as np
 import cv2
 from PIL import Image, ImageFile
+import os
+from torch.utils.data import DataLoader, Dataset
+from PIL import Image
 
 # ImageFile.LOAD_TRUNCATED_IMAGES = True
 from torch.utils.data import Dataset
@@ -16,7 +21,7 @@ class DatasetImageMaskContourDist(Dataset):
 
     def __init__(self, file_names, distance_type):
 
-        self.file_names = file_names
+        self.file_names = file_names    # ./train_path/fold/fold1/train/images/*.png
         self.distance_type = distance_type
 
     def __len__(self):
@@ -26,24 +31,46 @@ class DatasetImageMaskContourDist(Dataset):
     def __getitem__(self, idx):
 
         img_file_name = self.file_names[idx]
-        image = load_image(img_file_name)
-        mask = load_mask(img_file_name)
-        # todo:还有图像分类的任务，新添加一个标签叫cls,cls有三种值，0，1，2，分别代表良性，恶性，正常
-        #cls = load_cls(img_file_name)
-        contour = load_contour(img_file_name)
-        dist = load_distance(img_file_name, self.distance_type)
+        img_basename = os.path.basename(img_file_name)
+        mask_file_path = img_file_name.replace("images", "mask")
+        contour_file_path = img_file_name.replace("images", "contour")
+        dist_file_path = img_file_name.replace("images", self.distance_type)
+        cls_path = r'./train_path/train.csv'
 
-        return img_file_name, image, mask, contour, dist
+
+        image = load_image(img_file_name)
+        mask = load_mask(mask_file_path)
+        # todo:还有图像分类的任务，新添加一个标签叫cls,cls有三种值，0，1，2，分别代表良性，恶性，正常
+        cls = load_cls(cls_path, img_basename)
+        contour = load_contour(contour_file_path)
+        dist = load_distance(dist_file_path, self.distance_type)
+
+        return img_file_name, image, mask, contour, dist, cls
+
+
+def load_cls(path, name):
+    with open(path, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if name in line:
+                cls = line.split(',')[1]
+                # 将cls转换为tensor
+                cls = torch.tensor(int(cls))
+                return cls
+
+
 
 
 def load_image(path):
 
     img = Image.open(path)
+    img_path = path.split('\\')[0]
+    mean, std = calculate_mean_std(img_path)
     data_transforms = transforms.Compose(   # Compose 将多个变换组合在一起，包括transforms，ToTensor，Normalize等。
         [
             transforms.Resize(256),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), # Normalization 指定均值和标准差
+            transforms.Normalize([mean], [std]),  # Normalization 指定均值和标准差
         ]
     )
     # 相当于先resize，再转换为tensor，最后归一化，归一化的参数是ImageNet的均值和标准差
@@ -51,10 +78,26 @@ def load_image(path):
 
     return img
 
+def calculate_mean_std(dataset_path):
+    file_names = glob.glob(os.path.join(dataset_path, '*.png'))
+    mean_list = []
+    std_list = []
+
+    for file_name in file_names:
+        img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0
+        mean_list.append(np.mean(img))
+        std_list.append(np.std(img))
+
+    mean = np.mean(mean_list)
+    std = np.mean(std_list)
+
+    return mean, std
+
+
 
 def load_mask(path):
-
-    mask = cv2.imread(path.replace("image", "mask").replace("jpg", "png"), 0)
+    # 读取mask，mask是灰度图，像素点值为0或255
+    mask = cv2.imread(path, 0)  # 0表示灰度图
     mask[mask == 255] = 1   # 二值化，将255的像素点变为1，其余的本身就是0，则不变
 
     return torch.from_numpy(np.expand_dims(mask, 0)).long()
@@ -63,24 +106,28 @@ def load_mask(path):
 # contour是mask的边缘，所以contour的像素点值只有0和1
 def load_contour(path):
 
-    contour = cv2.imread(path.replace("image", "contour").replace("jpg", "png"), 0)
+    contour = cv2.imread(path, 0)
     contour[contour == 255] = 1
 
     return torch.from_numpy(np.expand_dims(contour, 0)).long()
 
 # distance是
 def load_distance(path, distance_type):
+    # 读取PNG图像文件
+    img = Image.open(path)
+    # 转换为NumPy数组
+    distance_array = np.array(img)
 
-    if distance_type == "dist_mask":
-        path = path.replace("image", "dist_mask").replace("jpg", "mat")
-        dist = io.loadmat(path)["mask_dist"]
+    # if distance_type == "dist_mask":
+    #     # path = path.replace("image", "dist_mask").replace("jpg", "mat")
+    #     dist = io.loadmat(path)["mask_dist"]
+    #
+    # if distance_type == "dist_contour":
+    #     # path = path.replace("image", "dist_contour").replace("jpg", "mat")
+    #     dist = io.loadmat(path)["contour_dist"]
+    #
+    # if distance_type == "dist_signed":
+    #     # path = path.replace("image", "dist_signed").replace("jpg", "mat")
+    #     dist = io.loadmat(path)["dist_norm"]
 
-    if distance_type == "dist_contour":
-        path = path.replace("image", "dist_contour").replace("jpg", "mat")
-        dist = io.loadmat(path)["contour_dist"]
-
-    if distance_type == "dist_signed":
-        path = path.replace("image", "dist_signed").replace("jpg", "mat")
-        dist = io.loadmat(path)["dist_norm"]
-
-    return torch.from_numpy(np.expand_dims(dist, 0)).float()
+    return torch.from_numpy(np.expand_dims(distance_array, 0)).float()

@@ -17,7 +17,7 @@ from utils import create_validation_arg_parser
 def build_model(model_type):
 
     if model_type == "unet":
-        model = UNet(num_classes=2)
+        model = UNet(input_channels=1, num_classes=2)
     if model_type == "dcan":
         model = UNet_DCAN(num_classes=2)
     if model_type == "dmtn":
@@ -33,8 +33,10 @@ def build_model(model_type):
 if __name__ == "__main__":
 
     args = create_validation_arg_parser().parse_args()
-    val_path = os.path.join(args.val_path, "*.jpg")
-    model_file = args.model_file
+    val_path_img = args.val_path + str(args.fold_id) + '/validation/images/'
+    val_path = os.path.join(val_path_img, "*.png")
+    model_file = args.model_file + args.project_name + '/' + args.pretrained_model_name
+    # model_file = args.model_file
     save_path = args.save_path
     model_type = args.model_type
 
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
 
     val_file_names = glob.glob(val_path)
-    valLoader = DataLoader(DatasetImageMaskContourDist(val_file_names, distance_type))
+    valLoader = DataLoader(DatasetImageMaskContourDist(val_file_names, args.distance_type), num_workers=5)
 
     if not os.path.exists(save_path):
         os.mkdir(save_path)
@@ -53,23 +55,26 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_file))
     model.eval()
 
-    for i, (img_file_name, inputs, targets1, targets2, targets3) in enumerate(
+    for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(
         tqdm(valLoader)
     ):
 
         inputs = inputs.to(device)
-        outputs1, outputs2, outputs3 = model(inputs)
+        # outputs1, outputs2, outputs3 = model(inputs)
+        outputs1 = model(inputs)
 
-        outputs1 = outputs1.detach().cpu().numpy().squeeze()
-        outputs2 = outputs2.detach().cpu().numpy().squeeze()
-        outputs3 = outputs3.detach().cpu().numpy().squeeze()
-
+        # 对outputs1中的每个Tensor对象进行detach操作
+        for i in range(len(outputs1)):
+            outputs1[i] = outputs1[i].detach().cpu().numpy().squeeze()
         res = np.zeros((256, 256))
-        indices = np.argmax(outputs1, axis=0)
-        res[indices == 1] = 255
-        res[indices == 0] = 0
+        indices = np.argmax(outputs1[0], axis=0)
+        output = outputs1[0][1]
+        output = 1 / (1 + np.exp(-output))
+        res = np.where(output > 0.5, 1, 0)
+        # res[indices >= 0.5] = 255
+        # res[indices < 0] = 0
 
         output_path = os.path.join(
-            save_result_path, "mask_" + os.path.basename(img_file_name[0])
+            save_path, "mask_" + os.path.basename(img_file_name[0])
         )
         cv2.imwrite(output_path, res)
