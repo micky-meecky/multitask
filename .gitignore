@@ -40,3 +40,8 @@ var/
 *.sln
 *.opensdf
 *.sdf
+
+# output
+*.pt
+*.pkl
+./savemodel/
