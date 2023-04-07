@@ -123,6 +123,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total:
         print()
 
+
 def char_color(s, front=50, word=32):
     """
     # 改变字符串颜色的函数
@@ -133,6 +134,7 @@ def char_color(s, front=50, word=32):
     """
     new_char = "\033[0;" + str(int(word)) + ";" + str(int(front)) + "m" + s + "\033[0m"
     return new_char
+
 
 if __name__ == "__main__":
 
@@ -180,6 +182,8 @@ if __name__ == "__main__":
 
 
     device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")  # 要么使用GPU，要么使用CPU
+
+    # todo: add transformer into it.
     model = build_model(args.model_type)    # 构建模型
 
     if torch.cuda.device_count() > 1:
@@ -196,6 +200,8 @@ if __name__ == "__main__":
         # 返回预训练模型文件的文件名（不包含路径和文件后缀），然后使用 split(".")[0] 来去掉文件后缀部分，只留下文件名。
         epoch_start = os.path.basename(pretrained_model_path).split(".")[0]
         print(epoch_start)  # 打印epoch_start
+
+    # todo: add TTA here
 
     trainLoader = DataLoader(
         DatasetImageMaskContourDist(train_file_names, args.distance_type),
@@ -270,6 +276,7 @@ if __name__ == "__main__":
 
         tic = datetime.datetime.now()
 
+        # validation part
         if epoch % 1 == 0:
             # todo: create metrics such as dice, jaccard, precision, recall, f1, etc.
 
@@ -280,6 +287,9 @@ if __name__ == "__main__":
             visualize(device, epoch, model, displayLoader, writer, args.val_batch_size)
         else:
             print("\nEpoch Loss:{} ".format(epoch_loss))
+
+        # todo: lr decay
+
 
         logging.info("epoch:{} train_loss:{} ".format(epoch, epoch_loss))
         if epoch % 5 == 0:
