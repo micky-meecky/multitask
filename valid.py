@@ -39,6 +39,8 @@ if __name__ == "__main__":
     # model_file = args.model_file
     save_path = args.save_path
     model_type = args.model_type
+    project_name = args.project_name
+    save_path = save_path + project_name + '/' + 'result/'
 
     cuda_no = args.cuda_no
     CUDA_SELECT = "cuda:{}".format(cuda_no)
@@ -68,13 +70,19 @@ if __name__ == "__main__":
             outputs1[i] = outputs1[i].detach().cpu().numpy().squeeze()
         res = np.zeros((256, 256))
         indices = np.argmax(outputs1[0], axis=0)
-        output = outputs1[0][1]
-        output = 1 / (1 + np.exp(-output))
-        res = np.where(output > 0.5, 1, 0)
+        output = outputs1[0][0]
+        # output = 1 / (1 + np.exp(-output))
+        output_mean = np.mean(output)
+        output_std = np.std(output)
+        output_standardized = (output - output_mean) / output_std
+        output_min = np.min(output_standardized)
+        output_max = np.max(output_standardized)
+        output_normalized = (output_standardized - output_min) / (output_max - output_min)
+
+        res = np.where(output_normalized > 0.5, 0, 1)
         # res[indices >= 0.5] = 255
         # res[indices < 0] = 0
-
         output_path = os.path.join(
             save_path, "mask_" + os.path.basename(img_file_name[0])
         )
-        cv2.imwrite(output_path, res)
+        cv2.imwrite(output_path, res * 255)

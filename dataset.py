@@ -19,10 +19,11 @@ class DatasetImageMaskContourDist(Dataset):
     # dataset_type(cup,disc,polyp),
     # distance_type(dist_mask,dist_contour,dist_signed)
 
-    def __init__(self, file_names, distance_type):
+    def __init__(self, file_names, distance_type, normal_flag):
 
         self.file_names = file_names    # ./train_path/fold/fold1/train/images/*.png
         self.distance_type = distance_type
+        self.normal_flag = normal_flag
 
     def __len__(self):
 
@@ -37,8 +38,7 @@ class DatasetImageMaskContourDist(Dataset):
         dist_file_path = img_file_name.replace("images", self.distance_type)
         cls_path = r'./train_path/train.csv'
 
-
-        image = load_image(img_file_name)
+        image = load_image(img_file_name, normal_flag=self.normal_flag)
         mask = load_mask(mask_file_path)
         # todo:还有图像分类的任务，新添加一个标签叫cls,cls有三种值，0，1，2，分别代表良性，恶性，正常
         cls = load_cls(cls_path, img_basename)
@@ -61,18 +61,26 @@ def load_cls(path, name):
 
 
 
-def load_image(path):
+def load_image(path, normal_flag):
 
     img = Image.open(path)
     img_path = path.split('\\')[0]
     mean, std = calculate_mean_std(img_path)
-    data_transforms = transforms.Compose(   # Compose 将多个变换组合在一起，包括transforms，ToTensor，Normalize等。
-        [
-            transforms.Resize(256),
-            transforms.ToTensor(),
-            transforms.Normalize([mean], [std]),  # Normalization 指定均值和标准差
-        ]
-    )
+    if normal_flag:
+        data_transforms = transforms.Compose(   # Compose 将多个变换组合在一起，包括transforms，ToTensor，Normalize等。
+            [
+                transforms.Resize(256),
+                transforms.ToTensor(),
+                transforms.Normalize([mean], [std])
+            ]
+        )
+    else:
+        data_transforms = transforms.Compose(
+            [
+                transforms.Resize(256),
+                transforms.ToTensor(),
+            ]
+        )
     # 相当于先resize，再转换为tensor，最后归一化，归一化的参数是ImageNet的均值和标准差
     img = data_transforms(img)
 

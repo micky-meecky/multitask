@@ -44,4 +44,5 @@ var/
 # output
 *.pt
 *.pkl
-./savemodel/
+./savemodel/*
+.Blissful-garden

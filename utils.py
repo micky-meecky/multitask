@@ -67,29 +67,60 @@ def visualize(device, epoch, model, data_loader, writer, val_batch_size, train=F
 def create_train_arg_parser():
 
     parser = argparse.ArgumentParser(description="train setup for segmentation")
+    parser.add_argument("--normal_flag", type=bool, default=False, help="normalization flag")
     parser.add_argument("--train_path", type=str, default='./train_path/fold/fold', help="path to img png files")
     parser.add_argument("--val_path", type=str, default='./train_path/fold/fold', help="path to img png files")
     parser.add_argument("--test_path", type=str, default='./train_path/fold/fold', help="path to img png files")
 
-    parser.add_argument( "--model_type", type=str, default="unet", help="model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument('--image_size', type=int, default=256)  # 网络输入img的size, 即输入会被强制resize到这个大小
+    parser.add_argument('--img_ch', type=int, default=1)    # 输入img的通道数
+    parser.add_argument('--num_classes', type=int, default=1)  # 网络输出的通道数, 一般为1
+    parser.add_argument('--output_ch', type=int, default=1)  # 网络输出的通道数, 一般为1
+
+    parser.add_argument('--mode', type=str, default='train', help='train/test')  # 训练or测试
+    parser.add_argument("--model_type", type=str, default="unet", help="model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
-    parser.add_argument("--batch_size", type=int, default=15, help="train batch size")
+    parser.add_argument("--batch_size", type=int, default=10, help="train batch size")
     parser.add_argument("--val_batch_size", type=int, default=20, help="validation batch size")
-    parser.add_argument("--num_epochs", type=int, default=400, help="number of epochs")
-    parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
-    parser.add_argument("--lr", type=float, default=1e-6, help="learning rate")
+    parser.add_argument("--num_epochs", type=int, default=460, help="number of epochs")
+    parser.add_argument("--cuda_no", type=int, default=1, help="cuda number")
+    parser.add_argument('--DataParallel', type=bool, default=False)  # 是否使用多gpu训练
+
+    parser.add_argument("--lr", type=float, default=2e-5, help="learning rate")
+    parser.add_argument('--lr_low', type=float, default=1e-15)  # 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
+    parser.add_argument('--lr_warm_epoch', type=int, default=20)  # warmup的epoch数,一般就是5~20,为0或False则不使用
+    parser.add_argument('--lr_cos_epoch', type=int, default=440)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
+    parser.add_argument("--lr_use_decay", type=bool, default=False, help="use lr decay")  # 是否使用lr衰减
+    parser.add_argument('--num_epochs_decay', type=int, default=20)  # decay开始的最小epoch数
+    parser.add_argument('--decay_ratio', type=float, default=0.01)  # 0~1,每次decay到1*ratio
+    parser.add_argument('--decay_step', type=int, default=40)  # epoch
+    parser.add_argument('--loss_type', type=str, default='BCE', help='loss type: BCE, Dice')  # loss类型
+
+    # optimizer param
+    parser.add_argument('--beta1', type=float, default=0.5)  # momentum1 in Adam
+    parser.add_argument('--beta2', type=float, default=0.999)  # momentum2 in Adam
 
     parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
-    parser.add_argument("--pretrained_model_name", type=str, default='25.pt', help="If use_pretrained is true, provide checkpoint.")
+    parser.add_argument("--pretrained_model_name", type=str, default='990.pt', help="If use_pretrained is true, provide checkpoint.")
+    parser.add_argument("--use_best_model", type=bool, default=False, help="Load best checkpoint.")
 
+    # result&save
+    parser.add_argument('--test_flag', type=bool, default=False)  # 训练过程中是否测试,不测试会节省很多时间
     parser.add_argument("--save_path", type=str, default='./savemodel', help="Model save path.")
+    parser.add_argument('--log_path', type=str, default='./result/TNSCUI/mylogs')   # 日志保存路径
+    parser.add_argument('--save_detail_result', type=bool, default=True)    # 是否保存详细的结果
+    parser.add_argument('--save_image', type=bool, default=True)  # 训练过程中观察图像和结果
+    parser.add_argument('--save_model_step', type=int, default=20)  # 保存模型时的间隔步数
+
+    parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
+    parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
 
     parser.add_argument("--fold_id", type=int, default=1, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
 
-    parser.add_argument("--project_name", type=str, default='test_debug_01', help="project name")
+    parser.add_argument("--project_name", type=str, default='test_debug_03', help="project name")
 
 
     return parser
@@ -104,7 +135,7 @@ def create_validation_arg_parser():
     parser.add_argument("--distance_type", type=str, default="dist_mask",
                         help="distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--model_file", type=str, default='./savemodel/', help="model_file")
-    parser.add_argument("--pretrained_model_name", type=str, default='30.pt',
+    parser.add_argument("--pretrained_model_name", type=str, default='1095.pt',
                         help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--save_path", type=str, default='./savemodel/', help="results save path.")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
