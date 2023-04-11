@@ -238,12 +238,8 @@ def CreateContourDistance(config):
     # 保存log文件
     log = f"Processed {len(os.listdir(contour.image_path))} images successfully."
 
-
 def DatasetDivided(config):
     # Todo: 读取csv文件，将图片分为训练集、验证集和测试集
-
-
-
 
     pass
 
@@ -362,7 +358,6 @@ def get_fold_filelist(csv_file, K=3, fold=1, random_state=2020, validation=False
 
 
         return [train_set, validation_set, test_set]
-
 
 def DivideData(config):
 
@@ -693,18 +688,6 @@ def DivideData(config):
     print("train_set: ", len(train_set))
     print("validation_set: ", len(validation_set))
     print("test_set: ", len(test_set))
-
-
-
-
-
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     # 读取配置文件，以及创建各个轮廓图距离图并保存

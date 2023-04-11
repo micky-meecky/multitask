@@ -118,10 +118,10 @@ def create_train_arg_parser():
     parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
     parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
 
-    parser.add_argument("--fold_id", type=int, default=3, help="fold id")
+    parser.add_argument("--fold_id", type=int, default=1, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
 
-    parser.add_argument("--project_name", type=str, default='unet_04_f3', help="project name")
+    parser.add_argument("--project_name", type=str, default='unet_04_f1', help="project name")
 
     return parser
 
@@ -131,7 +131,7 @@ def create_validation_arg_parser():
     parser = argparse.ArgumentParser(description="train setup for segmentation")
     parser.add_argument("--model_type", type=str, default="unet", help="select model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--normal_flag", type=bool, default=False, help="normalization flag")
-    parser.add_argument("--project_name", type=str, default='test_debug_03', help="project name")
+    parser.add_argument("--project_name", type=str, default='unet_04_f2', help="project name")
     parser.add_argument("--pretrained_model_name", type=str, default='440.pt',
                         help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument('--loss_type', type=str, default='BCE', help='loss type: BCE, Dice')  # loss类型
@@ -149,10 +149,11 @@ def create_validation_arg_parser():
 
 
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
+    parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
     # fold相关
     parser.add_argument("--fold_K", type=int, default=5, help="fold num")
-    parser.add_argument("--fold_id", type=int, default=1, help="fold id")
+    parser.add_argument("--fold_id", type=int, default=2, help="fold id")
     parser.add_argument("--fold_flag", type=bool, default=True, help="fold flag") # 预测测试集则设置为False直接读取img_path中PNG文件进行测试,True则使用分折信息
     parser.add_argument("--excel_path", type=str, default='./valid_result/', help="excel path")
 

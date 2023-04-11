@@ -27,7 +27,7 @@ def build_model(model_type, num_classes):  # 构建模型
     # 选择模型
     if model_type == "unet":
         # self.unet = UNet(input_channels=self.img_ch, num_classes=self.num_classes)
-        unet = UNet(input_channels=1, num_classes=1, padding_mode='zeros', add_output=True, dropout=True)
+        unet = UNet(input_channels=1, num_classes=1, padding_mode='reflect', add_output=True, dropout=True)
     if model_type == "dcan":
         unet = UNet_DCAN(num_classes=num_classes)
     if model_type == "dmtn":
@@ -83,6 +83,8 @@ if __name__ == "__main__":
     loss_type = args.loss_type
 
     cuda_no = args.cuda_no
+    DataParallel = args.DataParallel
+
     CUDA_SELECT = "cuda:{}".format(cuda_no)
     device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")
 
@@ -96,7 +98,12 @@ if __name__ == "__main__":
     excel_path = args.excel_path + project_name + r'/' + project_name + r'.xls'
 
     model = build_model(model_type, num_classes)
+    # print(model)
     model = model.to(device)
+    if DataParallel:
+        model = torch.nn.DataParallel(model)
+    load_model = torch.load(model_file)
+    # print(load_model)
     model.load_state_dict(torch.load(model_file))
     model.eval()
 

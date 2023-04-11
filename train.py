@@ -68,7 +68,6 @@ if __name__ == "__main__":
     val_file_names = glob.glob(val_path + "*.png")   # 获取验证集图片路径
     test_file_names = glob.glob(test_path + "*.png")  # 获取测试集图片路径
 
-
     # device = torch.device(CUDA_SELECT if torch.cuda.is_available() else "cpu")  # 要么使用GPU，要么使用CPU
 
 
@@ -225,6 +224,5 @@ if __name__ == "__main__":
         # epoch_idx += 1
 
     # 绘制训练损失的折线图
-
 
     print("Finished Training")
