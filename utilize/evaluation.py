@@ -134,9 +134,13 @@ class SegmentEvaluation():
 
     def get_F1(self, SR, GT, threshold=0.5):
         # Sensitivity == Recall F度量
-        SE = get_sensitivity(SR, GT, threshold=threshold)
-        PC = get_precision(SR, GT, threshold=threshold)
+        SE = self.get_sensitivity(SR, GT, threshold=threshold)
+        PC = self.get_precision(SR, GT, threshold=threshold)
+        SR = SR.view(-1)
+        GT = GT.view(-1)
 
+        SR = SR.data.cpu().numpy()
+        GT = GT.data.cpu().numpy()
         corr = np.sum(SR == GT)
         acc = float(corr) / float(SR.shape[0])
         if acc == 1:
@@ -165,8 +169,8 @@ class SegmentEvaluation():
         else:
             GT = np.zeros_like(GT, dtype=float)
 
-        Inter = torch.sum((SR + GT) == 2)
-        Union = torch.sum((SR + GT) >= 1)
+        Inter = np.sum((SR + GT) == 2)
+        Union = np.sum((SR + GT) >= 1)
 
         corr = np.sum(SR == GT)
         acc = float(corr) / float(SR.shape[0])

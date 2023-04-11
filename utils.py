@@ -113,6 +113,7 @@ def create_train_arg_parser():
     parser.add_argument('--save_detail_result', type=bool, default=True)    # 是否保存详细的结果
     parser.add_argument('--save_image', type=bool, default=True)  # 训练过程中观察图像和结果
     parser.add_argument('--save_model_step', type=int, default=20)  # 保存模型时的间隔步数
+    parser.add_argument('--plt_flag', type=bool, default=False)  # 是否在训练过程中的validation使用plt
 
     parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
     parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
@@ -120,8 +121,7 @@ def create_train_arg_parser():
     parser.add_argument("--fold_id", type=int, default=1, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
 
-    parser.add_argument("--project_name", type=str, default='test_debug_03', help="project name")
-
+    parser.add_argument("--project_name", type=str, default='unet_04_f2', help="project name")
 
     return parser
 
@@ -130,15 +130,39 @@ def create_validation_arg_parser():
 
     parser = argparse.ArgumentParser(description="train setup for segmentation")
     parser.add_argument("--model_type", type=str, default="unet", help="select model type: unet,dcan,dmtn,psinet,convmcd")
-    parser.add_argument("--project_name", type=str, default='test_debug_01', help="project name")
+    parser.add_argument("--normal_flag", type=bool, default=False, help="normalization flag")
+    parser.add_argument("--project_name", type=str, default='test_debug_03', help="project name")
+    parser.add_argument("--pretrained_model_name", type=str, default='440.pt',
+                        help="If use_pretrained is true, provide checkpoint.")
+    parser.add_argument('--loss_type', type=str, default='BCE', help='loss type: BCE, Dice')  # loss类型
+
+    # path
     parser.add_argument("--val_path", type=str, default='./train_path/fold/fold', help="path to img jpg files")
     parser.add_argument("--distance_type", type=str, default="dist_mask",
                         help="distance transform type - dist_mask,dist_contour,dist_signed")
     parser.add_argument("--model_file", type=str, default='./savemodel/', help="model_file")
-    parser.add_argument("--pretrained_model_name", type=str, default='1095.pt',
-                        help="If use_pretrained is true, provide checkpoint.")
-    parser.add_argument("--save_path", type=str, default='./savemodel/', help="results save path.")
+    parser.add_argument("--save_path", type=str, default='./valid_result/', help="results save path.")
+    # parser.add_argument("--excel_path", type=str, default='./savemodel/', help="excel path")
+    parser.add_argument("--save_step3_path", type=str, default='./valid_result', help="results save path.")
+    parser.add_argument('--plt_flag', type=bool, default=False)  # 是否在训练过程中的validation使用plt
+    parser.add_argument('--save_cls_data', type=bool, default=True)  # 是否保存分类数据
+
+
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
+
+    # fold相关
+    parser.add_argument("--fold_K", type=int, default=5, help="fold num")
     parser.add_argument("--fold_id", type=int, default=1, help="fold id")
+    parser.add_argument("--fold_flag", type=bool, default=True, help="fold flag") # 预测测试集则设置为False直接读取img_path中PNG文件进行测试,True则使用分折信息
+    parser.add_argument("--excel_path", type=str, default='./valid_result/', help="excel path")
+
+    # 加载模型相关
+    parser.add_argument("--use_best_model", type=bool, default=True, help="Load best checkpoint.")
+    parser.add_argument('--num_classes', type=int, default=1)  # 网络输出的通道数, 一般为1
+
+
+
+
+
 
     return parser

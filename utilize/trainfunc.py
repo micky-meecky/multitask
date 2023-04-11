@@ -50,6 +50,8 @@ def train_model(model, inputs, targets, model_type, criterion, optimizer):
             loss.backward()
             optimizer.step()
 
+
+
     return loss, outputs
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█',content =None):
