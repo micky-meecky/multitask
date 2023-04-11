@@ -101,9 +101,9 @@ class Solver(object):
 
 
         # Make record file
-        # self.record_file = os.path.join(self.result_path, '/record.txt')
-        # f = open(self.record_file, 'w')
-        # f.close()
+        self.record_file = self.result_path + '/record.txt'
+        f = open(self.record_file, 'w')
+        f.close()
 
         # 模型参数总数
         self.sizetotal = 0
@@ -119,6 +119,11 @@ class Solver(object):
 
         # 执行个初始化函数
         self.my_init()
+
+        f = open(os.path.join(self.result_path, 'config.txt'), 'w')
+        for key in config.__dict__:
+            print('%s: %s' % (key, config.__getattribute__(key)), file=f)
+        f.close()
 
     def myprint(self, *args):
         """Print & Record while training."""
@@ -173,12 +178,12 @@ class Solver(object):
             self.unet = nn.DataParallel(self.unet)
 
         # 打印getModelSize函数返回的网络
-        print(self.getModelSize(self.unet))
+        self.myprint(self.getModelSize(self.unet))
 
         if self.sizeFlag:   # 这里是打印网络的参数量
             self.sizeFlag = False
             self.sizetotal = sum([param.nelement() for param in self.unet.parameters()])
-            print("Number of parameter: %.2fM" % (self.sizetotal / 1e6))
+            self.myprint("Number of parameter: %.2fM" % (self.sizetotal / 1e6))
         ######
 
         # 优化器修改
@@ -310,8 +315,8 @@ class Solver(object):
                 # best_model_list[-1]是指最新的文件夹名
             if os.path.exists(best_unet_score_path):
                 self.unet.load_state_dict(torch.load(best_unet_score_path))  # 加载预训练模型
-                print(epoch_start)  # 打印epoch_start
-                print("Loading Model {}".format(best_model_list[-1]))  # 打印最新的文件夹名
+                self.myprint(epoch_start)  # 打印epoch_start
+                self.myprint("Loading Model {}".format(best_model_list[-1]))  # 打印最新的文件夹名
 
 
         if self.use_pretrained_model:
@@ -333,7 +338,7 @@ class Solver(object):
             epoch_loss = 0  # 指一个epoch里的loss
             length = 0  # 指一个epoch里包含的样本数量
 
-            print('enumerating')
+            self.myprint('enumerating')
             for i, sample in enumerate(self.train_loader):
                 # print('enumerate finished')
                 current_lr = self.optimizer.param_groups[0]['lr']  # 获取当前lr
@@ -474,7 +479,7 @@ class Solver(object):
             h, remainder = divmod((toc - tic).seconds, 3600)
             m, s = divmod(remainder, 60)
             time_str = "per epoch testing&vlidation cost Time %02d h:%02d m:%02d s" % (h, m, s)
-            print(char_color(time_str))
+            self.myprint(char_color(time_str))
 
             # 计算剩余时间
             epochtoc = datetime.datetime.now()
@@ -484,18 +489,18 @@ class Solver(object):
             h, remainder = divmod(time_seconds, 3600)
             m, s = divmod(remainder, 60)
             time_str = "per whole epoch cost Time %02d h:%02d m:%02d s" % (h, m, s)
-            print(char_color(time_str))
+            self.myprint(char_color(time_str))
             remain_time_sec = (self.num_epochs - epoch - 1) * per_epoch_time
             h, remainder = divmod(remain_time_sec, 3600)
             m, s = divmod(remainder, 60)
             time_str = "perhaps need Time %02d h:%02d m:%02d s" % (h, m, s)
-            print(char_color(time_str))
+            self.myprint(char_color(time_str))
 
         # 计算训练总时间
         h, remainder = divmod(total_time, 3600)
         m, s = divmod(remainder, 60)
         time_str = "total use time for %02d h:%02d m:%02d s" % (h, m, s)
-        print(char_color(time_str))
+        self.myprint(char_color(time_str))
 
         self.myprint('Finished!')
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
