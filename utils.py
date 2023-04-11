@@ -82,16 +82,16 @@ def create_train_arg_parser():
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
-    parser.add_argument("--batch_size", type=int, default=40, help="train batch size")
-    parser.add_argument("--val_batch_size", type=int, default=20, help="validation batch size")
-    parser.add_argument("--num_epochs", type=int, default=460, help="number of epochs")
+    parser.add_argument("--batch_size", type=int, default=80, help="train batch size")
+    parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
+    parser.add_argument("--num_epochs", type=int, default=800, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=1, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
     parser.add_argument("--lr", type=float, default=1e-5, help="learning rate")
-    parser.add_argument('--lr_low', type=float, default=1e-15)  # 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
+    parser.add_argument('--lr_low', type=float, default=1e-15)# 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
     parser.add_argument('--lr_warm_epoch', type=int, default=20)  # warmup的epoch数,一般就是5~20,为0或False则不使用
-    parser.add_argument('--lr_cos_epoch', type=int, default=440)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
+    parser.add_argument('--lr_cos_epoch', type=int, default=680)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
     parser.add_argument("--lr_use_decay", type=bool, default=False, help="use lr decay")  # 是否使用lr衰减
     parser.add_argument('--num_epochs_decay', type=int, default=20)  # decay开始的最小epoch数
     parser.add_argument('--decay_ratio', type=float, default=0.01)  # 0~1,每次decay到1*ratio
