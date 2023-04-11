@@ -13,6 +13,7 @@ import openpyxl
 import matplotlib
 import torchvision
 from torch import optim
+from torch import nn
 from torch.optim import lr_scheduler
 from tensorboardX import SummaryWriter
 import torch.nn.functional as F
@@ -25,7 +26,7 @@ from losses import LossUNet, LossDCAN, LossDMTN, LossPsiNet, LossSoftDice
 from utilize.evaluation import SegmentEvaluation
 
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['CUDA_LAUNCH_BLOCKING'] = '0'    # 用于调试cuda程序，当程序出现问题时，可以打印出出错的行号, 实现CPU与GPU同步或者异步
 
 matplotlib.use('Agg')  # 控制绘图不显示,以免在linux下程序崩溃
 class Solver(object):
@@ -107,6 +108,15 @@ class Solver(object):
         # 模型参数总数
         self.sizetotal = 0
 
+        self.device_count = 1
+        self.device_count = torch.cuda.device_count()
+
+        if self.device_count > 1:
+            print("Let's use", self.device_count, "GPUs!")
+        else:
+            print("Let's use", self.device_count, "GPU!")
+
+
         # 执行个初始化函数
         self.my_init()
 
@@ -158,6 +168,10 @@ class Solver(object):
         if self.model_type == "convmcd":
             self.unet = UNet_ConvMCD(num_classes=self.num_classes)
 
+        # 模型并行化
+        if self.DataParallel:
+            self.unet = nn.DataParallel(self.unet)
+
         # 打印getModelSize函数返回的网络
         print(self.getModelSize(self.unet))
 
@@ -199,9 +213,7 @@ class Solver(object):
             if self.lr_sch is None:
                 print('use linear decay')
 
-        self.unet.to(self.device)
-        if self.DataParallel:
-            self.unet = torch.nn.DataParallel(self.unet)
+        self.unet.to(self.device)  # 将模型放到GPU上
 
     def print_network(self, model, name):
         """Print out the network information."""
@@ -528,13 +540,13 @@ class Solver(object):
                 images_path = list(img_file_name)
                 inputs = inputs.to(self.device)
                 targets1 = targets1.to(self.device)
-                targets2 = targets2.to(self.device)
-                targets3 = targets3.to(self.device)
-                targets4 = targets4.to(self.device)
+                # targets2 = targets2.to(self.device)
+                # targets3 = targets3.to(self.device)
+                # targets4 = targets4.to(self.device)
 
-                targets = [targets1, targets2, targets3, targets4]
+                # targets = [targets1, targets2, targets3, targets4]
 
-                loss, SR = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
+                SR = self.unet(inputs)
                 SR = SR[0]                      # SR 是一个tensor
                 SR1 = SR.data.cpu().numpy()  # SR1 是一个numpy数组
                 if self.save_image:
@@ -593,7 +605,6 @@ class Solver(object):
         detail_result = np.array(detail_result)
 
         # 定义一个变量，用于设置求平均的个数
-        avg_num = 10
         if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
             excel_save_path = os.path.join(self.result_path, mode + '_pre_detail_result.xlsx')
             writer = pd.ExcelWriter(excel_save_path)

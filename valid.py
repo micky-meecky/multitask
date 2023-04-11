@@ -264,7 +264,6 @@ if __name__ == "__main__":
     ws.write(exl_idx, 9, str(round(JS_final, 4)))
     wb.save(excel_path)  # ================================================================
     print(ioumin3)
-    input()
 
-print('Finished Testing')
+    print('Finished Testing')
 

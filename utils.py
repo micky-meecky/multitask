@@ -86,7 +86,7 @@ def create_train_arg_parser():
     parser.add_argument("--val_batch_size", type=int, default=20, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=460, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=1, help="cuda number")
-    parser.add_argument('--DataParallel', type=bool, default=False)  # 是否使用多gpu训练
+    parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
     parser.add_argument("--lr", type=float, default=2e-5, help="learning rate")
     parser.add_argument('--lr_low', type=float, default=1e-15)  # 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
@@ -118,7 +118,7 @@ def create_train_arg_parser():
     parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
     parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
 
-    parser.add_argument("--fold_id", type=int, default=1, help="fold id")
+    parser.add_argument("--fold_id", type=int, default=2, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
 
     parser.add_argument("--project_name", type=str, default='unet_04_f2', help="project name")
