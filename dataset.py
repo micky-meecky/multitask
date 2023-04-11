@@ -58,14 +58,12 @@ def load_cls(path, name):
                 cls = torch.tensor(int(cls))
                 return cls
 
-
-
-
 def load_image(path, normal_flag):
     img = Image.open(path)
     img_path = path.split('\\')[0]
-    mean, std = calculate_mean_std(img_path)
+
     if normal_flag:
+        mean, std = calculate_mean_std(img_path)
         data_transforms = transforms.Compose(   # Compose 将多个变换组合在一起，包括transforms，ToTensor，Normalize等。
             [
                 transforms.Resize(256),
