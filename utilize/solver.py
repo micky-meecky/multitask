@@ -26,7 +26,7 @@ from losses import LossUNet, LossDCAN, LossDMTN, LossPsiNet, LossSoftDice
 from utilize.evaluation import SegmentEvaluation
 
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = '0'    # 用于调试cuda程序，当程序出现问题时，可以打印出出错的行号, 实现CPU与GPU同步或者异步
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'    # 用于调试cuda程序，当程序出现问题时，可以打印出出错的行号, 实现CPU与GPU同步或者异步
 
 matplotlib.use('Agg')  # 控制绘图不显示,以免在linux下程序崩溃
 class Solver(object):
