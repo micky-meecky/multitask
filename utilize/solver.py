@@ -340,6 +340,7 @@ class Solver(object):
 
             self.myprint('enumerating')
             for i, sample in enumerate(self.train_loader):
+
                 # print('enumerate finished')
                 current_lr = self.optimizer.param_groups[0]['lr']  # 获取当前lr
                 print(current_lr)
@@ -349,6 +350,10 @@ class Solver(object):
                 targets2 = targets2.to(self.device)
                 targets3 = targets3.to(self.device)
                 targets4 = targets4.to(self.device)
+                # 查看inputs, targets1, targets2, targets3, targets4的shape
+                print('inputs shape: ', inputs.shape)
+                print('targets1 shape: ', targets1.shape)
+
 
                 targets = [targets1, targets2, targets3, targets4]
 
