@@ -4,7 +4,7 @@ import torch
 import os
 import time
 import datetime
-
+import warnings
 
 
 import numpy as np
@@ -339,42 +339,43 @@ class Solver(object):
             length = 0  # 指一个epoch里包含的样本数量
 
             self.myprint('enumerating')
-            for i, sample in enumerate(self.train_loader):
+            with warnings.catch_warnings():
+                for i, sample in enumerate(self.train_loader):
 
-                # print('enumerate finished')
-                current_lr = self.optimizer.param_groups[0]['lr']  # 获取当前lr
-                print(current_lr)
-                (img_file_name, inputs, targets1, targets2, targets3, targets4) = sample
-                inputs = inputs.to(self.device)
-                targets1 = targets1.to(self.device)
-                targets2 = targets2.to(self.device)
-                targets3 = targets3.to(self.device)
-                targets4 = targets4.to(self.device)
-                # 查看inputs, targets1, targets2, targets3, targets4的shape
-                print('inputs shape: ', inputs.shape)
-                print('targets1 shape: ', targets1.shape)
+                    # print('enumerate finished')
+                    current_lr = self.optimizer.param_groups[0]['lr']  # 获取当前lr
+                    print(current_lr)
+                    (img_file_name, inputs, targets1, targets2, targets3, targets4) = sample
+                    inputs = inputs.to(self.device)
+                    targets1 = targets1.to(self.device)
+                    targets2 = targets2.to(self.device)
+                    targets3 = targets3.to(self.device)
+                    targets4 = targets4.to(self.device)
+                    # 查看inputs, targets1, targets2, targets3, targets4的shape
+                    print('inputs shape: ', inputs.shape)
+                    print('targets1 shape: ', targets1.shape)
 
 
-                targets = [targets1, targets2, targets3, targets4]
+                    targets = [targets1, targets2, targets3, targets4]
 
-                loss, output = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
+                    loss, output = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
 
-                length += 1
-                Iter += 1
-                writer.add_scalars('Loss', {'loss': loss}, Iter)  # 往文件里写进度
+                    length += 1
+                    Iter += 1
+                    writer.add_scalars('Loss', {'loss': loss}, Iter)  # 往文件里写进度
 
-                # Out = output[:, 0:1, :, :]
-                # if (self.save_image) and (i % 20 == 0):
-                #     images_all = torch.cat((inputs, Out, targets1), 0)
-                #     torchvision.utils.save_image(images_all.data.cpu(),
-                #                                  os.path.join(self.result_path, 'images', 'Train_%d_image.png' % i),
-                #                                  nrow=self.batch_size)  # 生成雪碧图
+                    # Out = output[:, 0:1, :, :]
+                    # if (self.save_image) and (i % 20 == 0):
+                    #     images_all = torch.cat((inputs, Out, targets1), 0)
+                    #     torchvision.utils.save_image(images_all.data.cpu(),
+                    #                                  os.path.join(self.result_path, 'images', 'Train_%d_image.png' % i),
+                    #                                  nrow=self.batch_size)  # 生成雪碧图
 
-                print_content = 'batch_total_loss:' + str(loss.data.cpu().numpy())
-                printProgressBar(i + 1, train_len, content=print_content)
+                    print_content = 'batch_total_loss:' + str(loss.data.cpu().numpy())
+                    printProgressBar(i + 1, train_len, content=print_content)
 
-                epoch_loss += loss.item()
-                print('wait for enumerate')
+                    epoch_loss += loss.item()
+                    print('wait for enumerate')
 
             # 计时结束
             toc = datetime.datetime.now()

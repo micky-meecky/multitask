@@ -62,7 +62,6 @@ def load_cls(path, name):
 
 
 def load_image(path, normal_flag):
-
     img = Image.open(path)
     img_path = path.split('\\')[0]
     mean, std = calculate_mean_std(img_path)
@@ -93,6 +92,9 @@ def calculate_mean_std(dataset_path):
 
     for file_name in file_names:
         img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0
+        # 检测是否存在分母为0的情况
+        if np.std(img) == 0:
+            continue
         mean_list.append(np.mean(img))
         std_list.append(np.std(img))
 
