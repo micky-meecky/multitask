@@ -101,9 +101,9 @@ class Solver(object):
 
 
         # Make record file
-        self.record_file = os.path.join(self.result_path, '/record.txt')
-        f = open(self.record_file, 'w')
-        f.close()
+        # self.record_file = os.path.join(self.result_path, '/record.txt')
+        # f = open(self.record_file, 'w')
+        # f.close()
 
         # 模型参数总数
         self.sizetotal = 0
