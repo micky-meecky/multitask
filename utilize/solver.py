@@ -149,7 +149,7 @@ class Solver(object):
             buffer_size += buffer.nelement() * buffer.element_size()
             buffer_sum += buffer.nelement()
         all_size = (param_size + buffer_size) / 1024 / 1024
-        print('模型总大小为：{:.3f}MB'.format(all_size))
+        self.myprint('模型总大小为：{:.3f}MB'.format(all_size))
         return param_size, param_sum, buffer_size, buffer_sum, all_size
         # param_size:参数大小，param_sum:参数个数，buffer_size:缓冲区大小，buffer_sum:缓冲区个数，all_size:总大小
         # 什么叫缓冲区？   缓冲区是用来存储一些中间变量的，比如batchnorm的running_mean和running_var，
