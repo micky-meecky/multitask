@@ -163,7 +163,8 @@ class Solver(object):
         # 选择模型
         if self.model_type == "unet":
             # self.unet = UNet(input_channels=self.img_ch, num_classes=self.num_classes)
-            self.unet = UNet(input_channels=1, num_classes=1, padding_mode='zeros', add_output=True, dropout=True)
+            self.unet = UNet(input_channels=1, num_classes=1, padding_mode='reflect', add_output=True, dropout=True)
+            # padding_mode有四种模式，分别是zeros,reflect,replicate,circular
         if self.model_type == "dcan":
             self.unet = UNet_DCAN(num_classes=self.num_classes)
         if self.model_type == "dmtn":
