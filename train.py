@@ -3,9 +3,11 @@ from torch.utils.data import DataLoader
 import glob
 import logging
 import random
+
 from utilize.solver import Solver
 from utils import visualize, evaluate, create_train_arg_parser
 from dataset import DatasetImageMaskContourDist
+from utilize.ExpAnalize import ResultSaver
 
 
 def char_color(s, front=50, word=32):
@@ -115,114 +117,8 @@ if __name__ == "__main__":
     # Train and sample the images
     if args.mode == 'train':
         solver.train()
-    # optimizer = Adam(model.parameters(), lr=args.lr)    # 优化器
-    # optimizer = Adam(model.parameters(), 1e-6, [beta1, beta2])  # 优化器
-    # criterion = define_loss(args.model_type)    # 损失函数 *
-
-
-
-    # train_len = len(trainLoader)
-    # epoch_len = args.num_epochs
-    # epoch_idx = 0
-    # for epoch in range(int(epoch_start) + 1, int(epoch_start) + 1 + args.num_epochs):  # loop over 150 epochs
-    #
-    #     global_step = epoch * len(trainLoader)
-    #     running_loss = 0.0
-    #     tic = datetime.datetime.now()
-    #     epochtic = datetime.datetime.now()
-    #     print("Epoch:{}\n".format(epoch))
-    #
-    #     for i, (img_file_name, inputs, targets1, targets2, targets3, targets4) in enumerate(trainLoader):
-    #         model.train()
-    #
-    #         inputs = inputs.to(device)
-    #         targets1 = targets1.to(device)
-    #         targets2 = targets2.to(device)
-    #         targets3 = targets3.to(device)
-    #         targets4 = targets4.to(device)
-    #
-    #         targets = [targets1, targets2, targets3, targets4]
-    #
-    #         loss = train_model(model, inputs, targets, args.model_type, criterion, optimizer)
-    #
-    #         train_loss.append(loss.item())
-    #         # if i % 5 == 0:
-    #         #     print("Epoch:{} Step:{} Loss:{}".format(epoch, i, loss.item()))
-    #
-    #         writer.add_scalar("loss", loss.item(), epoch)
-    #
-    #         running_loss += loss.item() * inputs.size(0)
-    #
-    #         print_content = 'batch_total_loss:' + str(loss.data.cpu().numpy()) + ' batch_size:' + str(
-    #             args.batch_size) + ' lr:' + str(args.lr)
-    #
-    #         if i % 2 == 0:
-    #             printProgressBar(i, train_len, content=print_content)
-    #         # print("sssssss")
-    #
-    #     epoch_loss = running_loss / len(train_file_names)
-    #
-    #     # 计时结束
-    #     toc = datetime.datetime.now()
-    #     h, remainder = divmod((toc - tic).seconds, 3600)
-    #     m, s = divmod(remainder, 60)
-    #     time_str = "per epoch training cost Time %02d h:%02d m:%02d s" % (h, m, s)
-    #     print(char_color(time_str))
-    #
-    #     tic = datetime.datetime.now()
-    #
-    #     # validation part
-    #     if epoch % 1 == 0:
-    #         # todo: create metrics such as dice, jaccard, precision, recall, f1, etc.
-    #
-    #         dev_loss, dev_time = evaluate(device, epoch, model, devLoader, writer)
-    #         writer.add_scalar("loss_valid", dev_loss, epoch)
-    #         valid_loss.append(dev_loss.item())
-    #         print("\nEpoch Loss:{} Val Loss:{}".format(epoch_loss, dev_loss))
-    #         visualize(device, epoch, model, displayLoader, writer, args.val_batch_size)
-    #     else:
-    #         print("\nEpoch Loss:{} ".format(epoch_loss))
-
-        # todo: lr decay(done)
-
-        # todo: 针对输出内容，做一些名字规范化，还有归档处理，方便管理。
-
-        # todo: 添加一个excel，记录每次训练的最终结果，包括loss，dice，jaccard，precision，recall，f1等。这些指标有均有两种计算方式(done)
-        # todo: 一种是对这次的训练的最后10个epoch的平均值，另一种是取其中的最大值。
-
-        # todo: 记录训练数据到txt文件中，方便后续分析。(done)
-
-        # todo: 添加模型大小的记录，方便后续分析。(done)
-
-        # logging.info("epoch:{} train_loss:{} ".format(epoch, epoch_loss))
-        # if epoch % 5 == 0:
-        #     torch.save(
-        #         model.state_dict(), os.path.join(args.save_path + '/' + args.project_name, str(epoch) + ".pt")
-        #     )
-
-        # 计时结束
-        # toc = datetime.datetime.now()
-        # h, remainder = divmod((toc - tic).seconds, 3600)
-        # m, s = divmod(remainder, 60)
-        # time_str = "per epoch testing&vlidation cost Time %02d h:%02d m:%02d s" % (h, m, s)
-        # print(char_color(time_str))
-        #
-        # epochtoc = datetime.datetime.now()
-        # time_seconds = (epochtoc - epochtic).seconds
-        # total_time = total_time + time_seconds
-        # per_epoch_time = total_time / (epoch_idx + 1)
-        # h, remainder = divmod(time_seconds, 3600)
-        # m, s = divmod(remainder, 60)
-        # time_str = "per whole epoch cost Time %02d h:%02d m:%02d s" % (h, m, s)
-        # print(char_color(time_str))
-        # remain_time_sec = (args.num_epochs - epoch_idx - 1) * per_epoch_time
-        # h, remainder = divmod(remain_time_sec, 3600)
-        # m, s = divmod(remainder, 60)
-        # time_str = "perhaps need Time %02d h:%02d m:%02d s" % (h, m, s)
-        # print(char_color(time_str))
-        #
-        # epoch_idx += 1
-
-    # 绘制训练损失的折线图
-
     print("Finished Training")
+
+    # 整理结果
+    organize_result = ResultSaver(args.save_path, args.exp_prefix, args.record_n_rows)
+

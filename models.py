@@ -173,6 +173,8 @@ class UNet_DCAN(nn.Module):
         bottom_s=4,
         num_classes=1,
         add_output=True,
+        padding_mode="zeros",
+        dropout=False,
     ):
         super().__init__()
         self.num_classes = num_classes
