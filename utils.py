@@ -118,10 +118,10 @@ def create_train_arg_parser():
     parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
     parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
 
-    parser.add_argument("--fold_id", type=int, default=1, help="fold id")
+    parser.add_argument("--fold_id", type=int, default=4, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
 
-    parser.add_argument("--project_name", type=str, default='unet_04_f1', help="project name")
+    parser.add_argument("--project_name", type=str, default='unet_04_f4', help="project name")
 
     return parser
 
