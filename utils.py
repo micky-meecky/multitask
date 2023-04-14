@@ -86,7 +86,7 @@ def create_train_arg_parser():
     parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=800, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
-    parser.add_argument('--DataParallel', type=bool, default=False)  # 是否使用多gpu训练
+    parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
     parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
     parser.add_argument('--lr_low', type=float, default=1e-13)# 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
