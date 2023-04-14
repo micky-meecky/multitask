@@ -16,6 +16,9 @@ from torch import optim
 from torch import nn
 from torch.optim import lr_scheduler
 from tensorboardX import SummaryWriter
+from skorch import NeuralNetRegressor
+from skorch.helper import SliceDataset
+from sklearn.model_selection import RandomizedSearchCV
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
@@ -87,23 +90,38 @@ class Solver(object):
         self.save_step_model = config.save_path + '/' + config.project_name
         self.log_dir = self.result_path + '/logs'
         self.DataParallel = config.DataParallel
+        self.save_path = config.save_path
 
         self.test_flag = config.test_flag
 
-        # 设置学习率策略相关参数
+        # 设置学习率策略相关超参数
         self.decay_ratio = config.decay_ratio
         self.lr_cos_epoch = config.lr_cos_epoch
         self.lr_warm_epoch = config.lr_warm_epoch
         self.lr_sch = None  # 初始化先设置为None
         self.lr_list = []  # 临时记录lr
 
+        # 设置是否使用超参数搜索
+        self.is_use_hyper_search = config.is_use_hyper_search
+        self.param_distributions = {
+            'lr': [0.001, 0.01],
+            'max_epochs': [10, 5],
+            'batch_size': [8, 16, 32],
+            # Add more hyperparameters here
+        }
+        self.num_samples = config.num_samples
+        self.cv = config.cv
+        self.verbose = config.verbose
+
         self.tta_mode = config.tta_mode
 
+        # 执行个初始化函数
+        self.my_init()
 
         # Make record file
-        self.record_file = self.result_path + '/record.txt'
-        f = open(self.record_file, 'w')
-        f.close()
+        # self.record_file = self.result_path + '/record.txt'
+        # f = open(self.record_file, 'w')
+        # f.close()
 
         # 模型参数总数
         self.sizetotal = 0
@@ -115,10 +133,6 @@ class Solver(object):
             print("Let's use", self.device_count, "GPUs!")
         else:
             print("Let's use", self.device_count, "GPU!")
-
-
-        # 执行个初始化函数
-        self.my_init()
 
         f = open(os.path.join(self.result_path, 'config.txt'), 'w')
         for key in config.__dict__:
@@ -133,9 +147,18 @@ class Solver(object):
         f.close()
 
     def my_init(self):  # 初始化函数
+
+        self.result_path = os.path.join(self.save_path + '/' + self.project_name)
+        if not os.path.exists(self.result_path):
+            os.makedirs(self.result_path)
+        # Make record file
+        self.record_file = self.result_path + '/record.txt'
+        f = open(self.record_file, 'w')
+        f.close()
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
         # self.print_date_msg()
         self.build_model()
+
 
     def getModelSize(self, model):
         param_size = 0
@@ -258,9 +281,9 @@ class Solver(object):
             if loss_type == "BCE":
                 criterion = LossUNet(0, num_classes=self.num_classes, weights=weights, device=self.device)
         if model_type == "dcan":
-            criterion = LossDCAN(weights)
+            criterion = LossDCAN(0, num_classes=self.num_classes, weights=weights, device=self.device)
         if model_type == "dmtn":
-            criterion = LossDMTN(weights)
+            criterion = LossDMTN(0, num_classes=self.num_classes, weights=weights, device=self.device)
         if model_type == "psinet" or model_type == "convmcd":
             # Both psinet and convmcd uses same mask,contour and distance loss function
             criterion = LossPsiNet(weights)
@@ -353,8 +376,8 @@ class Solver(object):
                     targets3 = targets3.to(self.device)
                     targets4 = targets4.to(self.device)
                     # 查看inputs, targets1, targets2, targets3, targets4的shape
-                    print('inputs shape: ', inputs.shape)
-                    print('targets1 shape: ', targets1.shape)
+                    # print('inputs shape: ', inputs.shape)
+                    # print('targets1 shape: ', targets1.shape)
 
 
                     targets = [targets1, targets2, targets3, targets4]
@@ -512,8 +535,6 @@ class Solver(object):
         self.myprint('Finished!')
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
 
-
-
     def test_tta(self, mode='train', unet_path=None):
         """Test model & Calculate performances."""
         ev = SegmentEvaluation(1)
@@ -544,22 +565,37 @@ class Solver(object):
         # Cls_acc = 0.  # Class_acc
         length = 0
 
-        # model pre for each image
-        detail_result = []  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
+        conacc = 0.
+        conSE = 0.
+        conSP = 0.
+        conPC = 0.
+        conDC = 0.
+        conIOU = 0.
+        conlength = 0
+        condetail_result = []
+        valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
+        condetail_result.append(valid_record)
+        detail_result = []
+        detail_result.append(valid_record)
+
+
         with torch.no_grad():
             for i, sample in enumerate(data_loader):
                 (img_file_name, inputs, targets1, targets2, targets3, targets4) = sample
                 images_path = list(img_file_name)
                 inputs = inputs.to(self.device)
                 targets1 = targets1.to(self.device)
-                # targets2 = targets2.to(self.device)
-                # targets3 = targets3.to(self.device)
-                # targets4 = targets4.to(self.device)
+                targets2 = targets2.to(self.device)
+                targets3 = targets3.to(self.device)
+                targets4 = targets4.to(self.device)
 
                 # targets = [targets1, targets2, targets3, targets4]
 
                 SR = self.unet(inputs)
-                SR = SR[0]                      # SR 是一个tensor
+                SR_contour = SR[1]              # SR_contour 是一个tensor
+                SR_contour1 = SR_contour.data.cpu().numpy()
+
+                SR = SR[0]                   # SR 是一个tensor
                 SR1 = SR.data.cpu().numpy()  # SR1 是一个numpy数组
                 if self.save_image:
                     if SR.shape[1] == 1:
@@ -575,9 +611,24 @@ class Solver(object):
                     torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
                                                                                      '%s_%d_image.png' % (mode, i)),
                                                  nrow=self.batch_size)
+                    if SR_contour.shape[1] == 1:
+                        threshold = 0.5
+                        device = SR_contour.device
+                        SR_contour_binary = torch.where(SR_contour > threshold, torch.tensor(1.0, device=device),
+                                                        torch.tensor(0.0, device=device))
+                        images_all = torch.cat((inputs, SR_contour_binary, targets2), 0)
+                    else:
+                        SRc = SR_contour[:, 0:1, :, :]
+                        images_all = torch.cat((inputs, SRc, targets2), 0)
+                    torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
+                                                                                        '%s_%d_image_contour.png' % (mode, i)),
+                                                    nrow=self.batch_size)
+
 
                 # SR1 = SR1.data.cpu().numpy()
                 targets1 = targets1.data.cpu().numpy()
+                # SR_contour1 = SR_contour1.data.cpu().numpy()
+                targets2 = targets2.data.cpu().numpy()
 
                 for i in range(SR.shape[0]):
                     SR_tmp = SR1[i, :].reshape(-1)
@@ -607,6 +658,34 @@ class Solver(object):
                     detail_result.append(result_tmp)
 
                     length += 1
+
+                for i in range(SR_contour.shape[0]):
+                    SR_tmp = SR_contour1[i, :].reshape(-1)
+                    GT_tmp = targets2[i, :].reshape(-1)
+                    tmp_index = images_path[i].split('/')[-1].split('\\')[-1]
+                    tmp_index = int(tmp_index.split('.')[0][:])
+
+                    SR_tmp = torch.from_numpy(SR_tmp).to(self.device)
+                    GT_tmp = torch.from_numpy(GT_tmp).to(self.device)
+
+                    result_tmp = np.array([tmp_index,
+                                           ev.get_accuracy(SR_tmp, GT_tmp),
+                                           ev.get_sensitivity(SR_tmp, GT_tmp),
+                                           ev.get_specificity(SR_tmp, GT_tmp),
+                                           ev.get_precision(SR_tmp, GT_tmp),
+                                           ev.get_DC(SR_tmp, GT_tmp),
+                                           ev.get_IOU(SR_tmp, GT_tmp)])
+                                           # ev.get_clsaccuracy(lable_idx, class_GT)])
+
+                    conacc += result_tmp[1]
+                    conSE += result_tmp[2]
+                    conSP += result_tmp[3]
+                    conPC += result_tmp[4]
+                    conDC += result_tmp[5]
+                    conIOU += result_tmp[6]
+                    # Cls_acc += result_tmp[7]
+                    condetail_result.append(result_tmp)
+
         accuracy = acc / length
         sensitivity = SE / length
         specificity = SP / length
@@ -616,18 +695,98 @@ class Solver(object):
         # cls_acc = Cls_acc / length
         detail_result = np.array(detail_result)
 
+        conaccuracy = conacc / length
+        consensitivity = conSE / length
+        conspecificity = conSP / length
+        conprecision = conPC / length
+        condisc = conDC / length
+        coniou = conIOU / length
+        # cls_acc = Cls_acc / length
+        condetail_result = np.array(condetail_result)
+
+        print('conaccuracy = ', conaccuracy)
+        print('consensitivity = ', consensitivity)
+        print('conspecificity = ', conspecificity)
+        print('conprecision = ', conprecision)
+        print('condisc = ', condisc)
+        print('coniou = ', coniou)
+
+        # 将condetail_result的结果保存到condetail_result.xlsx中
+        if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
+            txt_save_path = os.path.join(self.result_path, mode + '_pre_detail_contour_result.xlsx')
+            writer = pd.ExcelWriter(txt_save_path)
+            condetail_result = pd.DataFrame(condetail_result)
+            condetail_result.to_excel(writer, mode, float_format='%.5f', index=False, header=False)
+            # writer.save()
+            writer.close()
+
+
         # 定义一个变量，用于设置求平均的个数
         if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
             excel_save_path = os.path.join(self.result_path, mode + '_pre_detail_result.xlsx')
             writer = pd.ExcelWriter(excel_save_path)
             detail_result = pd.DataFrame(detail_result)
-            detail_result.to_excel(writer, mode, float_format='%.5f')
+            detail_result.to_excel(writer, mode, float_format='%.5f', index=False, header=False)
             # writer.save()
             writer.close()
 
         # return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
 
         return accuracy, sensitivity, specificity, precision, disc, iou
+
+    def hyper_search(self, devLoader, testLoader):
+        print('hyper_search')
+        train_data = next(iter(self.train_loader))
+        X_train, y_train = train_data[1], train_data[2]
+        X_dev_data = next(iter(devLoader))
+        X_dev, y_dev = X_dev_data[1], X_dev_data[2]
+
+        net = UNet(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True,
+             dropout=True)
+        criterion = LossUNet(0, num_classes=self.num_classes)
+        net = NeuralNetRegressor(
+            module=net,
+            max_epochs=10,
+            batch_size=10,
+            optimizer=torch.optim.Adam,
+            criterion=criterion,
+            lr=0.001,
+            device=self.device,
+            train_split=SliceDataset,
+            iterator_train__shuffle=True,
+            iterator_train__num_workers=0,
+            iterator_valid__shuffle=False,
+            iterator_valid__num_workers=0,
+            verbose=2,
+        )
+        # 设置joblib启动方式为forkserver
+        # net.initialize()
+        # net.initialize_optimizer()
+        # net.initialize_criterion()
+        # net.initialize_callbacks()
+        # net._initialize_module()
+
+        search = RandomizedSearchCV(
+            net,
+            self.param_distributions,
+            n_iter=self.num_samples,
+            scoring='r2',
+            cv=self.cv,
+            refit=True,
+            verbose=self.verbose,
+            n_jobs=4,
+
+        )
+
+        search.fit(X_train, y_train)
+
+        best_params = search.best_params_
+        print(f"Best hyperparameters: {best_params}")
+
+
+
+
+
 
 
 

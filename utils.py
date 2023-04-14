@@ -85,13 +85,13 @@ def create_train_arg_parser():
     parser.add_argument("--batch_size", type=int, default=80, help="train batch size")
     parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=800, help="number of epochs")
-    parser.add_argument("--cuda_no", type=int, default=1, help="cuda number")
+    parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=False)  # 是否使用多gpu训练
 
     parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
     parser.add_argument('--lr_low', type=float, default=1e-13)# 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
     parser.add_argument('--lr_warm_epoch', type=int, default=20)  # warmup的epoch数,一般就是5~20,为0或False则不使用
-    parser.add_argument('--lr_cos_epoch', type=int, default=680)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
+    parser.add_argument('--lr_cos_epoch', type=int, default=600)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
     parser.add_argument("--lr_use_decay", type=bool, default=False, help="use lr decay")  # 是否使用lr衰减
     parser.add_argument('--num_epochs_decay', type=int, default=20)  # decay开始的最小epoch数
     parser.add_argument('--decay_ratio', type=float, default=0.01)  # 0~1,每次decay到1*ratio
@@ -118,6 +118,7 @@ def create_train_arg_parser():
     parser.add_argument('--val_step', type=int, default=1)  # 进行测试集或验证集评估的间隔步数
     parser.add_argument('--tta_mode', type=bool, default=False)  # 是否在训练过程中的validation使用tta
 
+    parser.add_argument("--fold_all_train", type=bool, default=True, help="fold all train")
     parser.add_argument("--fold_id", type=int, default=1, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
     parser.add_argument("--auto_select_fold", type=bool, default=False, help="auto select fold")
@@ -126,6 +127,11 @@ def create_train_arg_parser():
 
     parser.add_argument('--exp_prefix', type=str, default='unetDCAN_01_f')  # 实验名前缀，就是project_name的前面部分
     parser.add_argument('--record_n_rows', type=int, default=20)  # 取记录的倒数20行，做平均分数
+
+    parser.add_argument('--is_use_hyper_search', type=bool, default=False)  # 是否使用超参搜索
+    parser.add_argument('--num_samples', type=int, default=10)  # 超参搜索的样本数
+    parser.add_argument('--cv', type=int, default=5)  # 超参搜索的交叉验证数
+    parser.add_argument('--verbose', type=int, default=2)  # 超参搜索是否显示详细信息
 
     return parser
 

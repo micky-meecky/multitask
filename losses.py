@@ -55,10 +55,10 @@ class LossUNet:
 
 
 class LossDCAN:
-    def __init__(self, weights=[1, 1, 1]):
+    def __init__(self, jaccard_weight, num_classes=2, weights=[1, 1, 1], device='cpu'):
 
-        self.criterion1 = LossMulti(num_classes=2)
-        self.criterion2 = LossMulti(num_classes=2)
+        self.criterion1 = LossMulti(jaccard_weight=jaccard_weight, class_weights=None, num_classes=num_classes, device=device)
+        self.criterion2 = LossMulti(jaccard_weight=jaccard_weight, class_weights=None, num_classes=num_classes, device=device)
         self.weights = weights
 
     def __call__(self, outputs1, outputs2, targets1, targets2):
@@ -71,7 +71,7 @@ class LossDCAN:
 
 
 class LossDMTN:
-    def __init__(self, weights=[1, 1, 1]):
+    def __init__(self, jaccard_weight, num_classes=2, weights=[1, 1, 1], device='cpu'):
 
         self.criterion1 = LossMulti(num_classes=2)
         self.criterion2 = nn.MSELoss()

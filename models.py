@@ -183,12 +183,12 @@ class UNet_DCAN(nn.Module):
         down_filter_sizes = [filters_base * s for s in down_filter_factors]
         up_filter_sizes = [filters_base * s for s in up_filter_factors]
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
-        self.down.append(self.module(input_channels, down_filter_sizes[0]))
+        self.down.append(self.module(input_channels, down_filter_sizes[0], padding_mode= padding_mode, dropout=dropout))
         for prev_i, nf in enumerate(down_filter_sizes[1:]):
-            self.down.append(self.module(down_filter_sizes[prev_i], nf))
+            self.down.append(self.module(down_filter_sizes[prev_i], nf, padding_mode= padding_mode, dropout=dropout))
         for prev_i, nf in enumerate(up_filter_sizes[1:]):
             self.up.append(
-                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i])
+                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i], padding_mode= padding_mode, dropout=dropout)
             )
         pool = nn.MaxPool2d(2, 2)
         pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
@@ -239,11 +239,15 @@ class UNet_DCAN(nn.Module):
             x_out1 = self.conv_final1(x_out1)
             if self.num_classes > 1:
                 x_out1 = F.log_softmax(x_out1, dim=1)
+            else:
+                x_out1 = torch.sigmoid(x_out1)
 
         if self.add_output:
             x_out2 = self.conv_final2(x_out2)
             if self.num_classes > 1:
                 x_out2 = F.log_softmax(x_out2, dim=1)
+            else:
+                x_out2 = torch.sigmoid(x_out2)
 
         return [x_out1, x_out2]
 
@@ -329,53 +333,14 @@ class UNet_DMTN(nn.Module):
             x_out1 = self.conv_final1(x_out1)
             if self.num_classes > 1:
                 x_out1 = F.log_softmax(x_out1, dim=1)
+            else:
+                x_out1 = torch.sigmoid(x_out1)
 
         if self.add_output:
             x_out2 = self.conv_final2(x_out2)
             x_out2 = F.sigmoid(x_out2)
 
         return [x_out1, x_out2]
-
-'''class UNet(nn.Module):
-    output_downscaled = 1
-    module = UNetModule
-    def __init__(
-        self,
-        input_channels=3,
-        filters_base: int = 32,
-        down_filter_factors=(1, 2, 4, 8, 16),
-        up_filter_factors=(1, 2, 4, 8, 16),
-        bottom_s=4,
-        num_classes=1,
-        padding=1,
-        add_output=True,
-    ):
-        super().__init__()
-        self.num_classes = num_classes
-        assert len(down_filter_factors) == len(up_filter_factors)
-        assert down_filter_factors[-1] == up_filter_factors[-1]
-        down_filter_sizes = [filters_base * s for s in down_filter_factors]
-        up_filter_sizes = [filters_base * s for s in up_filter_factors]
-        self.down, self.up = nn.ModuleList(), nn.ModuleList()
-        self.down.append(self.module(input_channels, down_filter_sizes[0]))  
-        for prev_i, nf in enumerate(down_filter_sizes[1:]):
-            self.down.append(self.module(down_filter_sizes[prev_i], nf))  
-        for prev_i, nf in enumerate(up_filter_sizes[1:]):
-            self.up.append(
-                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i])   
-            )
-        pool = nn.MaxPool2d(2, 2)  
-        pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
-        upsample = nn.Upsample(scale_factor=2)
-        upsample_bottom = nn.Upsample(scale_factor=bottom_s)
-        self.downsamplers = [None] + [pool] * (len(self.down) - 1)
-        self.downsamplers[-1] = pool_bottom   
-        self.upsamplers = [upsample] * len(self.up)  
-        self.upsamplers[-1] = upsample_bottom   upsample_bottom
-        self.add_output = add_output
-        if add_output:
-            self.conv_final = nn.Conv2d(up_filter_sizes[0], num_classes, padding)
-'''
 
 class UNet(nn.Module):
     """
@@ -455,7 +420,6 @@ class UNet(nn.Module):
 
 
         return [x_out]
-
 
 class UNet_ConvMCD(nn.Module):
     """
