@@ -93,6 +93,7 @@ class Solver(object):
         self.save_path = config.save_path
 
         self.test_flag = config.test_flag
+        self.fold_id = config.fold_id
 
         # 设置学习率策略相关超参数
         self.decay_ratio = config.decay_ratio
@@ -147,7 +148,7 @@ class Solver(object):
         f.close()
 
     def my_init(self):  # 初始化函数
-
+        self.myprint("这是第%d个fold的训练", self.fold_id)
         self.result_path = os.path.join(self.save_path + '/' + self.project_name)
         if not os.path.exists(self.result_path):
             os.makedirs(self.result_path)
@@ -532,7 +533,8 @@ class Solver(object):
         time_str = "total use time for %02d h:%02d m:%02d s" % (h, m, s)
         self.myprint(char_color(time_str))
 
-        self.myprint('Finished!')
+        # self.myprint('Finished!')
+        self.myprint("第%d个fold的训练结束了！！！！！！！", self.fold_id)
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
 
     def test_tta(self, mode='train', unet_path=None):
