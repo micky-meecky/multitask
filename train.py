@@ -86,6 +86,48 @@ def main(args):
                 solver = Solver(args, trainLoader, devLoader, testLoader)
                 solver.train()
         else:
+            # glob是python的一个模块，用于查找符合特定规则的文件路径名，glob.glob()返回所有匹配的文件路径列表
+            # os.path.join(args.train_path, "*.jpg")是指在args.train_path路径下查找所有.jpg文件, 然后将其路径存入train_file_names
+            train_path = args.train_path + str(args.fold_id) + '/train/images/'  # train_path是指训练集图片路径
+            val_path = args.train_path + str(args.fold_id) + '/validation/images/'  # val_path是指验证集图片路径
+            test_path = args.train_path + str(args.fold_id) + '/test/images/'  # test_path是指测试集图片路径
+            train_file_names = glob.glob(train_path + "*.png")  # 获取训练集图片路径
+
+            # 为了避免模型只记住了数据的顺序，而非真正的特征，代码使用了 random.shuffle() 函数对 train_file_names
+            # 变量中存储的图片路径进行了随机打乱操作，从而增加了数据的随机性，更有助于训练出鲁棒性更强的模型。
+            random.shuffle(train_file_names)  # 打乱训练集图片路径
+            val_file_names = glob.glob(val_path + "*.png")  # 获取验证集图片路径
+            test_file_names = glob.glob(test_path + "*.png")  # 获取测试集图片路径
+
+            # todo: add TTA here
+
+            trainLoader = DataLoader(
+                DatasetImageMaskContourDist(train_file_names, args.distance_type, args.normal_flag),
+                batch_size=args.batch_size,
+                # batch_size=50,
+                num_workers=5,
+            )
+            devLoader = DataLoader(
+                DatasetImageMaskContourDist(val_file_names, args.distance_type, args.normal_flag),
+                batch_size=args.val_batch_size,
+                num_workers=5,
+            )
+            displayLoader = DataLoader(
+                DatasetImageMaskContourDist(val_file_names, args.distance_type, args.normal_flag),
+                # batch_size=args.val_batch_size,
+                num_workers=5,
+            )
+            testLoader = DataLoader(
+                DatasetImageMaskContourDist(test_file_names, args.distance_type, args.normal_flag),
+                num_workers=5,
+                batch_size=10,
+            )
+            # solver = Solver(args, testLoader, devLoader, testLoader)
+
+            # if args.is_use_hyper_search:
+            #     solver.hyper_search(devLoader, testLoader)
+            #     print("Finished Hyper Search")
+            #     return
             solver = Solver(args, trainLoader, devLoader, testLoader)
             solver.train()
 

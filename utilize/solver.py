@@ -148,7 +148,6 @@ class Solver(object):
         f.close()
 
     def my_init(self):  # 初始化函数
-        self.myprint("这是第%d个fold的训练", self.fold_id)
         self.result_path = os.path.join(self.save_path + '/' + self.project_name)
         if not os.path.exists(self.result_path):
             os.makedirs(self.result_path)
@@ -156,6 +155,7 @@ class Solver(object):
         self.record_file = self.result_path + '/record.txt'
         f = open(self.record_file, 'w')
         f.close()
+        self.myprint("这是第%d个fold的训练", self.fold_id)
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
         # self.print_date_msg()
         self.build_model()
