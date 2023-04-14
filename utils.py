@@ -78,12 +78,12 @@ def create_train_arg_parser():
     parser.add_argument('--output_ch', type=int, default=1)  # 网络输出的通道数, 一般为1
 
     parser.add_argument('--mode', type=str, default='train', help='train/test')  # 训练or测试
-    parser.add_argument("--model_type", type=str, default="dcan", help="model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument("--model_type", type=str, default="unet", help="model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
-    parser.add_argument("--batch_size", type=int, default=80, help="train batch size")
-    parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
+    parser.add_argument("--batch_size", type=int, default=10, help="train batch size")
+    parser.add_argument("--val_batch_size", type=int, default=10, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=800, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=1, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=False)  # 是否使用多gpu训练
