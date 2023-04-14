@@ -60,7 +60,6 @@ class ResultSaver:
         df = self.analyzer.analyze_all()
         even_rows = df.iloc[::2]    # even行的就是avg_last_n_rows
         odd_rows = df.iloc[1::2]    # odd行的就是max_iou_row
-        print('haha ')
         even_rows = even_rows.apply(lambda x: pd.to_numeric(x, errors='coerce'))  # 转换数据类型为浮点型
         odd_rows = odd_rows.apply(lambda x: pd.to_numeric(x, errors='coerce'))  # 转换数据类型为浮点型
         # avg_even_rows = even_rows.mean(axis=0)  # 按列求平均

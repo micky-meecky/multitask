@@ -120,6 +120,7 @@ def create_train_arg_parser():
 
     parser.add_argument("--fold_id", type=int, default=1, help="fold id")
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
+    parser.add_argument("--auto_select_fold", type=bool, default=False, help="auto select fold")
 
     parser.add_argument("--project_name", type=str, default='unetDCAN_01_f1', help="project name")
 
