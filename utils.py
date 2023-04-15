@@ -82,7 +82,7 @@ def create_train_arg_parser():
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
-    parser.add_argument("--batch_size", type=int, default=80, help="train batch size")
+    parser.add_argument("--batch_size", type=int, default=8, help="train batch size")
     parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=800, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
@@ -102,8 +102,8 @@ def create_train_arg_parser():
     parser.add_argument('--beta1', type=float, default=0.5)  # momentum1 in Adam
     parser.add_argument('--beta2', type=float, default=0.999)  # momentum2 in Adam
 
-    parser.add_argument("--use_pretrained", type=bool, default=True, help="Load pretrained checkpoint.")
-    parser.add_argument("--pretrained_model_name", type=str, default='5.pt', help="If use_pretrained is true, provide checkpoint.")
+    parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
+    parser.add_argument("--pretrained_model_name", type=str, default='485.pt', help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--use_best_model", type=bool, default=False, help="Load best checkpoint.")
 
     # result&save

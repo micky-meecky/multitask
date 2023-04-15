@@ -371,6 +371,8 @@ class Solver(object):
                     current_lr = self.optimizer.param_groups[0]['lr']  # 获取当前lr
                     print(current_lr)
                     (img_file_name, inputs, targets1, targets2, targets3, targets4) = sample
+                    # 将targets2转成numpyarray
+                    targets2_tmp = targets2.cpu().detach().numpy()
                     inputs = inputs.to(self.device)
                     targets1 = targets1.to(self.device)
                     targets2 = targets2.to(self.device)
