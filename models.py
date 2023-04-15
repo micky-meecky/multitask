@@ -269,6 +269,8 @@ class UNet_DMTN(nn.Module):
         bottom_s=4,
         num_classes=1,
         add_output=True,
+        padding_mode="zeros",
+        dropout=False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -277,12 +279,12 @@ class UNet_DMTN(nn.Module):
         down_filter_sizes = [filters_base * s for s in down_filter_factors]
         up_filter_sizes = [filters_base * s for s in up_filter_factors]
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
-        self.down.append(self.module(input_channels, down_filter_sizes[0]))
+        self.down.append(self.module(input_channels, down_filter_sizes[0], padding_mode, dropout))
         for prev_i, nf in enumerate(down_filter_sizes[1:]):
-            self.down.append(self.module(down_filter_sizes[prev_i], nf))
+            self.down.append(self.module(down_filter_sizes[prev_i], nf, padding_mode, dropout))
         for prev_i, nf in enumerate(up_filter_sizes[1:]):
             self.up.append(
-                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i])
+                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i], padding_mode, dropout)
             )
         pool = nn.MaxPool2d(2, 2)
         pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
@@ -338,7 +340,7 @@ class UNet_DMTN(nn.Module):
 
         if self.add_output:
             x_out2 = self.conv_final2(x_out2)
-            x_out2 = F.sigmoid(x_out2)
+            x_out2 = F.relu_(x_out2)
 
         return [x_out1, x_out2]
 

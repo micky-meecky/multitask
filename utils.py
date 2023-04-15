@@ -78,7 +78,7 @@ def create_train_arg_parser():
     parser.add_argument('--output_ch', type=int, default=1)  # 网络输出的通道数, 一般为1
 
     parser.add_argument('--mode', type=str, default='train', help='train/test')  # 训练or测试
-    parser.add_argument("--model_type", type=str, default="dcan", help="model type: unet,dcan,dmtn,psinet,convmcd")
+    parser.add_argument("--model_type", type=str, default="dmtn", help="model type: unet,dcan,dmtn,psinet,convmcd")
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
@@ -88,7 +88,7 @@ def create_train_arg_parser():
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
-    parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
+    parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
     parser.add_argument('--lr_low', type=float, default=1e-13)# 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
     parser.add_argument('--lr_warm_epoch', type=int, default=20)  # warmup的epoch数,一般就是5~20,为0或False则不使用
     parser.add_argument('--lr_cos_epoch', type=int, default=600)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
@@ -102,8 +102,8 @@ def create_train_arg_parser():
     parser.add_argument('--beta1', type=float, default=0.5)  # momentum1 in Adam
     parser.add_argument('--beta2', type=float, default=0.999)  # momentum2 in Adam
 
-    parser.add_argument("--use_pretrained", type=bool, default=False, help="Load pretrained checkpoint.")
-    parser.add_argument("--pretrained_model_name", type=str, default='990.pt', help="If use_pretrained is true, provide checkpoint.")
+    parser.add_argument("--use_pretrained", type=bool, default=True, help="Load pretrained checkpoint.")
+    parser.add_argument("--pretrained_model_name", type=str, default='5.pt', help="If use_pretrained is true, provide checkpoint.")
     parser.add_argument("--use_best_model", type=bool, default=False, help="Load best checkpoint.")
 
     # result&save
@@ -123,9 +123,9 @@ def create_train_arg_parser():
     parser.add_argument("--fold_num", type=int, default=5, help="fold num")
     parser.add_argument("--auto_select_fold", type=bool, default=False, help="auto select fold")
 
-    parser.add_argument("--project_name", type=str, default='unetDCAN_01_f1', help="project name")
+    parser.add_argument("--project_name", type=str, default='unetDMTN_01_f1', help="project name")
 
-    parser.add_argument('--exp_prefix', type=str, default='unetDCAN_01_f')  # 实验名前缀，就是project_name的前面部分
+    parser.add_argument('--exp_prefix', type=str, default='unetDMTN_01_f')  # 实验名前缀，就是project_name的前面部分
     parser.add_argument('--record_n_rows', type=int, default=20)  # 取记录的倒数20行，做平均分数
 
     parser.add_argument('--is_use_hyper_search', type=bool, default=False)  # 是否使用超参搜索

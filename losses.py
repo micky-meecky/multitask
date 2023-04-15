@@ -79,9 +79,9 @@ class LossDMTN:
 
     def __call__(self, outputs1, outputs2, targets1, targets2):
 
-        criterion = self.weights[0] * self.criterion1(
-            outputs1, targets1
-        ) + self.weights[1] * self.criterion2(outputs2, targets2)
+        loss1 = self.criterion1(outputs1, targets1)
+        loss2 = self.criterion2(outputs2, targets2)
+        criterion = self.weights[0] * loss1 + self.weights[1] * loss2
 
         return criterion
 

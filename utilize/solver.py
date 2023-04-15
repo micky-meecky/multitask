@@ -192,7 +192,7 @@ class Solver(object):
         if self.model_type == "dcan":
             self.unet = UNet_DCAN(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True, dropout=True)
         if self.model_type == "dmtn":
-            self.unet = UNet_DMTN(num_classes=self.num_classes)
+            self.unet = UNet_DMTN(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True, dropout=True)
         if self.model_type == "psinet":
             self.unet = PsiNet(num_classes=self.num_classes)
         if self.model_type == "convmcd":

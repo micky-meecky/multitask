@@ -36,7 +36,7 @@ def main(args):
         if args.fold_all_train:
             for args.fold_id in range(1, 6):
                 args.fold_id = args.fold_id
-                args.project_name = 'unetDCAN_01_f' + str(args.fold_id)
+                args.project_name = args.exp_prefix + str(args.fold_id)
 
                 # glob是python的一个模块，用于查找符合特定规则的文件路径名，glob.glob()返回所有匹配的文件路径列表
                 # os.path.join(args.train_path, "*.jpg")是指在args.train_path路径下查找所有.jpg文件, 然后将其路径存入train_file_names
