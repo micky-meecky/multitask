@@ -100,10 +100,10 @@ class LossPsiNet:
         mask_loss = self.weights[0] * self.criterion1(outputs1, targets1)
         contour_loss = self.weights[1] * self.criterion2(outputs2, targets2)
         dist_loss = self.weights[2] * self.criterion3(outputs3, targets3)
-        targets4 = targets4.float()
+        # targets4 = targets4.float()
         # targets4 和 outputs4 都要加1，为了防止出现0
-        targets4 = targets4 + 1.0
-        outputs4 = outputs4 + 1.0
+        # targets4 = targets4 + 1.0
+        # outputs4 = outputs4 + 1.0
         cls_loss = self.weights[3] * self.criterion4(outputs4, targets4)
 
         criterion = mask_loss + contour_loss + dist_loss + cls_loss
