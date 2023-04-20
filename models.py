@@ -155,7 +155,6 @@ class PsiNet(nn.Module):
 
         return [x_out1, x_out2, x_out3]
 
-
 class UNet_DCAN(nn.Module):
     """
     Adapted from Vanilla UNet implementation - https://github.com/lopuhin/mapillary-vistas-2017/blob/master/unet_models.py
@@ -250,7 +249,6 @@ class UNet_DCAN(nn.Module):
                 x_out2 = torch.sigmoid(x_out2)
 
         return [x_out1, x_out2]
-
 
 class UNet_DMTN(nn.Module):
     """
@@ -442,6 +440,8 @@ class UNet_ConvMCD(nn.Module):
         bottom_s=4,
         num_classes=1,
         add_output=True,
+        padding_mode="zeros",
+        dropout=False,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -450,12 +450,12 @@ class UNet_ConvMCD(nn.Module):
         down_filter_sizes = [filters_base * s for s in down_filter_factors]
         up_filter_sizes = [filters_base * s for s in up_filter_factors]
         self.down, self.up = nn.ModuleList(), nn.ModuleList()
-        self.down.append(self.module(input_channels, down_filter_sizes[0]))
+        self.down.append(self.module(input_channels, down_filter_sizes[0], padding_mode, dropout))
         for prev_i, nf in enumerate(down_filter_sizes[1:]):
-            self.down.append(self.module(down_filter_sizes[prev_i], nf))
+            self.down.append(self.module(down_filter_sizes[prev_i], nf, padding_mode, dropout))
         for prev_i, nf in enumerate(up_filter_sizes[1:]):
             self.up.append(
-                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i])
+                self.module(down_filter_sizes[prev_i] + nf, up_filter_sizes[prev_i], padding_mode, dropout)
             )
         pool = nn.MaxPool2d(2, 2)
         pool_bottom = nn.MaxPool2d(bottom_s, bottom_s)
@@ -466,10 +466,18 @@ class UNet_ConvMCD(nn.Module):
         self.upsamplers = [upsample] * len(self.up)
         self.upsamplers[-1] = upsample_bottom
         self.add_output = add_output
+
         if add_output:
             self.conv_final1 = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
             self.conv_final2 = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
-            self.conv_final3 = nn.Conv2d(up_filter_sizes[0], 1, 1)
+            self.conv_final3 = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
+            self.conv_final4 = nn.Conv2d(up_filter_sizes[0], num_classes, 1)
+            # 分类器
+            self.global_pooling = nn.AdaptiveAvgPool2d((1, 1))  # 全局平均池化, 是为了将特征图转换为一个特征向量
+            self.fc1 = nn.Linear(256 * 256, 256)  # 256 * 256 是特征图的大小，3 是分类的类别数
+            self.fc2 = nn.Linear(256, 3)
+
+
 
     def forward(self, x):
         xs = []
@@ -489,13 +497,24 @@ class UNet_ConvMCD(nn.Module):
             x_out1 = self.conv_final1(x_out)
             x_out2 = self.conv_final2(x_out)
             x_out3 = self.conv_final3(x_out)
+            x_out4 = self.conv_final4(x_out)
+
             if self.num_classes > 1:
                 x_out1 = F.log_softmax(x_out1, dim=1)
                 x_out2 = F.log_softmax(x_out2, dim=1)
-            x_out3 = F.sigmoid(x_out3)
+            else:
+                x_out1 = torch.sigmoid(x_out1)
+                x_out2 = torch.sigmoid(x_out2)
+            x_out3 = torch.sigmoid(x_out3)
+            x_out4 = x_out4.view(x_out4.size(0), -1)  # 将特征图转换为一个特征向量view的第一个参数是batch_size，-1表示自适应
+            x_out4 = F.relu(self.fc1(x_out4))
+            x_out4 = self.fc2(x_out4)
+            x_out4 = F.softmax(x_out4, dim=1)
+
+
 
         # return x_out,x_out1,x_out2,x_out3
-        return [x_out1, x_out2, x_out3]
+        return [x_out1, x_out2, x_out3, x_out4]
 
 
 if __name__ == '__main__':

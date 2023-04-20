@@ -83,7 +83,7 @@ def main(args):
 
 
 
-                solver = Solver(args, trainLoader, devLoader, testLoader)
+                solver = Solver(args, testLoader, devLoader, testLoader)
                 solver.train()
         else:
             # glob是python的一个模块，用于查找符合特定规则的文件路径名，glob.glob()返回所有匹配的文件路径列表

@@ -155,7 +155,7 @@ class Solver(object):
         self.record_file = self.result_path + '/record.txt'
         f = open(self.record_file, 'w')
         f.close()
-        self.myprint("这是第%d个fold的训练", self.fold_id)
+        self.myprint("这是第%d个fold的训练" % (self.fold_id))
         self.myprint(time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time())))
         # self.print_date_msg()
         self.build_model()
@@ -196,7 +196,7 @@ class Solver(object):
         if self.model_type == "psinet":
             self.unet = PsiNet(num_classes=self.num_classes)
         if self.model_type == "convmcd":
-            self.unet = UNet_ConvMCD(num_classes=self.num_classes)
+            self.unet = UNet_ConvMCD(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True, dropout=True)
 
         # 模型并行化
         if self.DataParallel:
@@ -275,7 +275,7 @@ class Solver(object):
         img = img * 255
         return img
 
-    def define_loss(self, model_type, loss_type, weights=[1, 1, 1]):
+    def define_loss(self, model_type, loss_type, weights=[0.5, 0.1, 0.1, 0.3]):
         if model_type == "unet":
             if loss_type == "Dice":
                 criterion = LossSoftDice(weights)
@@ -287,7 +287,7 @@ class Solver(object):
             criterion = LossDMTN(0, num_classes=self.num_classes, weights=weights, device=self.device)
         if model_type == "psinet" or model_type == "convmcd":
             # Both psinet and convmcd uses same mask,contour and distance loss function
-            criterion = LossPsiNet(weights)
+            criterion = LossPsiNet(0, num_classes=self.num_classes, weights=weights, device=self.device)
 
         return criterion
 
@@ -317,10 +317,10 @@ class Solver(object):
 
 
         writer = SummaryWriter(log_dir=self.log_dir)  # tensorboard
-        # valid_record = np.zeros((1, 9))  # [epoch, Iter, acc, SE, SP, PC, Dice, IOU, cls_acc]
-        test_record = np.zeros((1, 8))  # [epoch, Iter, acc, SE, SP, PC, Dice, IOU]
-        # valid_record = np.array(['epoch', 'Iter', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU', 'cls_acc'])
-        valid_record = np.array(['epoch', 'Iter', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
+        valid_record = np.zeros((1, 9))  # [epoch, Iter, acc, SE, SP, PC, Dice, IOU, cls_acc]
+        # test_record = np.zeros((1, 8))  # [epoch, Iter, acc, SE, SP, PC, Dice, IOU]
+        valid_record = np.array(['epoch', 'Iter', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU', 'cls_acc'])
+        # valid_record = np.array(['epoch', 'Iter', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
         """Train encoder, generator and discriminator."""
         self.myprint('-----------------------%s-----------------------------' % self.project_name)
 
@@ -385,7 +385,7 @@ class Solver(object):
 
                     targets = [targets1, targets2, targets3, targets4]
 
-                    loss, output = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
+                    loss, output, mask_loss, contour_loss, dist_loss, cls_loss = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
 
                     length += 1
                     Iter += 1
@@ -399,6 +399,10 @@ class Solver(object):
                     #                                  nrow=self.batch_size)  # 生成雪碧图
 
                     print_content = 'batch_total_loss:' + str(loss.data.cpu().numpy())
+                    print_content += ' mask_loss:' + str(mask_loss.data.cpu().numpy())
+                    print_content += ' contour_loss:' + str(contour_loss.data.cpu().numpy())
+                    print_content += ' dist_loss:' + str(dist_loss.data.cpu().numpy())
+                    print_content += ' cls_loss:' + str(cls_loss.data.cpu().numpy())
                     printProgressBar(i + 1, train_len, content=print_content)
 
                     epoch_loss += loss.item()
@@ -453,22 +457,22 @@ class Solver(object):
                 # Validation #
                 if self.tta_mode:  # (默认为False)
                     # acc, SE, SP, PC, DC, IOU, cls_acc = self.test_tta(mode='valid')
-                    acc, SE, SP, PC, DC, IOU = self.test_tta(mode='valid')
+                    acc, SE, SP, PC, DC, IOU, cls_acc = self.test_tta(mode='valid')
                 else:
-                    acc, SE, SP, PC, DC, IOU = self.test_tta(mode='valid')
+                    acc, SE, SP, PC, DC, IOU, cls_acc = self.test_tta(mode='valid')
                 # valid_record = np.vstack((valid_record, np.array([epoch + 1, Iter, acc, SE, SP, PC, DC, IOU, cls_acc])))
-                valid_record = np.vstack((valid_record, np.array([epoch + 1 + int(epoch_start), Iter, acc, SE, SP, PC, DC, IOU])))
+                valid_record = np.vstack((valid_record, np.array([epoch + 1 + int(epoch_start), Iter, acc, SE, SP, PC, DC, IOU, cls_acc])))
                 # unet_score = 1.0 * cls_acc  # TODO
                 unet_score = 1.0 * IOU  # TODO
                 # writer.add_scalars('Valid', {'Dice': DC, 'IOU': IOU, 'acc': acc, 'SE': SE, 'SP': SP, 'PC': PC, 'Cls_acc': cls_acc}, epoch)
-                writer.add_scalars('Valid', {'Dice': DC, 'IOU': IOU, 'acc': acc, 'SE': SE, 'SP': SP, 'PC': PC},
+                writer.add_scalars('Valid', {'Dice': DC, 'IOU': IOU, 'acc': acc, 'SE': SE, 'SP': SP, 'PC': PC, 'Cls_acc': cls_acc},
                                    epoch + int(epoch_start))
                 # self.myprint(
                 #     '[Validation] Acc: %.4f, SE: %.4f, SP: %.4f, PC: %.4f, Dice: %.4f, IOU: %.4f, cls_acc: %.4f' % (
                 #         acc, SE, SP, PC, DC, IOU, cls_acc))
                 self.myprint(
-                    '[Validation] Acc: %.4f, SE: %.4f, SP: %.4f, PC: %.4f, Dice: %.4f, IOU: %.4f' % (
-                        acc, SE, SP, PC, DC, IOU))
+                    '[Validation] Acc: %.4f, SE: %.4f, SP: %.4f, PC: %.4f, Dice: %.4f, IOU: %.4f, cls_acc: %.4f' % (
+                        acc, SE, SP, PC, DC, IOU, cls_acc))
 
                 # 保存最好的模型
                 if unet_score > best_unet_score:
@@ -566,7 +570,7 @@ class Solver(object):
         PC = 0.  # Precision
         DC = 0.  # Dice Coefficient
         IOU = 0.  # IOU
-        # Cls_acc = 0.  # Class_acc
+        Cls_acc = 0.  # Class_acc
         length = 0
 
         conacc = 0.
@@ -577,8 +581,20 @@ class Solver(object):
         conIOU = 0.
         conlength = 0
         condetail_result = []
-        valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
-        condetail_result.append(valid_record)
+
+        distacc = 0.
+        distSE = 0.
+        distSP = 0.
+        distPC = 0.
+        distDC = 0.
+        distIOU = 0.
+        distlength = 0
+        distdetail_result = []
+
+        valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU', 'Cls_acc'])
+        con_valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
+        condetail_result.append(con_valid_record)
+        distdetail_result.append(con_valid_record)
         detail_result = []
         detail_result.append(valid_record)
 
@@ -599,9 +615,24 @@ class Solver(object):
                 SR_contour = SR[1]              # SR_contour 是一个tensor
                 SR_contour1 = SR_contour.data.cpu().numpy()
 
+                SR_dist = SR[2]                 # SR_dist 是一个tensor
+                SR_dist1 = SR_dist.data.cpu().numpy()
+
+                SR_cls = torch.argmax(SR[3], dim=1)                  # SR_cls 是一个tensor
+                SR_cls1 = SR_cls.data.cpu().numpy()
+
                 SR = SR[0]                   # SR 是一个tensor
                 SR1 = SR.data.cpu().numpy()  # SR1 是一个numpy数组
+
                 if self.save_image:
+                    # 判断SR_cls类别的ACC
+                    SR_cls = SR_cls.data.cpu().numpy()
+                    targets4 = targets4.data.cpu().numpy()
+
+                    corr = np.sum(SR_cls == targets4)
+                    cls_acc = float(corr) / float(SR_cls.shape[0])
+
+
                     if SR.shape[1] == 1:
                         # 把SR做二值化，SR是一个tensor
                         threshold = 0.5  # 二值化阈值
@@ -628,11 +659,27 @@ class Solver(object):
                                                                                         '%s_%d_image_contour.png' % (mode, i)),
                                                     nrow=self.batch_size)
 
+                    if SR_dist.shape[1] == 1:
+                        threshold = 0.5
+                        device = SR_dist.device
+                        SR_dist_binary = torch.where(SR_dist > threshold, torch.tensor(1.0, device=device),
+                                                        torch.tensor(0.0, device=device))
+                        images_all = torch.cat((inputs, SR_dist_binary, targets3), 0)
+                    else:
+                        SRc = SR_dist[:, 0:1, :, :]
+                        images_all = torch.cat((inputs, SRc, targets3), 0)
+                    torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
+                                                                                        '%s_%d_image_contour.png' % (mode, i)),
+                                                    nrow=self.batch_size)
+
 
                 # SR1 = SR1.data.cpu().numpy()
                 targets1 = targets1.data.cpu().numpy()
                 # SR_contour1 = SR_contour1.data.cpu().numpy()
                 targets2 = targets2.data.cpu().numpy()
+                # SR_dist1 = SR_dist1.data.cpu().numpy()
+                targets3 = targets3.data.cpu().numpy()
+
 
                 for i in range(SR.shape[0]):
                     SR_tmp = SR1[i, :].reshape(-1)
@@ -649,7 +696,8 @@ class Solver(object):
                                            ev.get_specificity(SR_tmp, GT_tmp),
                                            ev.get_precision(SR_tmp, GT_tmp),
                                            ev.get_DC(SR_tmp, GT_tmp),
-                                           ev.get_IOU(SR_tmp, GT_tmp)])
+                                           ev.get_IOU(SR_tmp, GT_tmp),
+                                           float(cls_acc)])
                                            # ev.get_clsaccuracy(lable_idx, class_GT)])
 
                     acc += result_tmp[1]
@@ -658,11 +706,12 @@ class Solver(object):
                     PC += result_tmp[4]
                     DC += result_tmp[5]
                     IOU += result_tmp[6]
-                    # Cls_acc += result_tmp[7]
+                    Cls_acc += result_tmp[7]
                     detail_result.append(result_tmp)
 
                     length += 1
 
+                # for contour
                 for i in range(SR_contour.shape[0]):
                     SR_tmp = SR_contour1[i, :].reshape(-1)
                     GT_tmp = targets2[i, :].reshape(-1)
@@ -690,6 +739,38 @@ class Solver(object):
                     # Cls_acc += result_tmp[7]
                     condetail_result.append(result_tmp)
 
+                    length += 1
+
+                # for dist
+                for i in range(SR_dist.shape[0]):
+                    SR_tmp = SR_dist1[i, :].reshape(-1)
+                    GT_tmp = targets3[i, :].reshape(-1)
+                    tmp_index = images_path[i].split('/')[-1].split('\\')[-1]
+                    tmp_index = int(tmp_index.split('.')[0][:])
+
+                    SR_tmp = torch.from_numpy(SR_tmp).to(self.device)
+                    GT_tmp = torch.from_numpy(GT_tmp).to(self.device)
+
+                    result_tmp = np.array([tmp_index,
+                                           ev.get_accuracy(SR_tmp, GT_tmp),
+                                           ev.get_sensitivity(SR_tmp, GT_tmp),
+                                           ev.get_specificity(SR_tmp, GT_tmp),
+                                           ev.get_precision(SR_tmp, GT_tmp),
+                                           ev.get_DC(SR_tmp, GT_tmp),
+                                           ev.get_IOU(SR_tmp, GT_tmp)])
+                                           # ev.get_clsaccuracy(lable_idx, class_GT)])
+
+                    distacc += result_tmp[1]
+                    distSE += result_tmp[2]
+                    distSP += result_tmp[3]
+                    distPC += result_tmp[4]
+                    distDC += result_tmp[5]
+                    distIOU += result_tmp[6]
+                    # Cls_acc += result_tmp[7]
+                    condetail_result.append(result_tmp)
+
+                    length += 1
+
         accuracy = acc / length
         sensitivity = SE / length
         specificity = SP / length
@@ -708,12 +789,21 @@ class Solver(object):
         # cls_acc = Cls_acc / length
         condetail_result = np.array(condetail_result)
 
-        print('conaccuracy = ', conaccuracy)
-        print('consensitivity = ', consensitivity)
-        print('conspecificity = ', conspecificity)
-        print('conprecision = ', conprecision)
-        print('condisc = ', condisc)
-        print('coniou = ', coniou)
+        distaccuracy = distacc / length
+        distsensitivity = distSE / length
+        distspecificity = distSP / length
+        distprecision = distPC / length
+        distdisc = distDC / length
+        distiou = distIOU / length
+        # cls_acc = Cls_acc / length
+        distdetail_result = np.array(distdetail_result)
+
+        # print('conaccuracy = ', conaccuracy)
+        # print('consensitivity = ', consensitivity)
+        # print('conspecificity = ', conspecificity)
+        # print('conprecision = ', conprecision)
+        # print('condisc = ', condisc)
+        # print('coniou = ', coniou)
 
         # 将condetail_result的结果保存到condetail_result.xlsx中
         if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
@@ -734,9 +824,21 @@ class Solver(object):
             # writer.save()
             writer.close()
 
-        # return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
+        # 将distdetail_result的结果保存到distdetail_result.xlsx中
+        if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
+            txt_save_path = os.path.join(self.result_path, mode + '_pre_detail_dist_result.xlsx')
+            writer = pd.ExcelWriter(txt_save_path)
+            distdetail_result = pd.DataFrame(distdetail_result)
+            distdetail_result.to_excel(writer, mode, float_format='%.5f', index=False, header=False)
+            # writer.save()
+            writer.close()
 
-        return accuracy, sensitivity, specificity, precision, disc, iou
+
+        return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
+
+        # return accuracy, sensitivity, specificity, precision, disc, iou
+
+        # return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
 
     def hyper_search(self, devLoader, testLoader):
         print('hyper_search')
