@@ -45,7 +45,7 @@ def train_model(model, inputs, targets, model_type, criterion, optimizer):
         with torch.set_grad_enabled(True):
             outputs = model(inputs)
             # outputs[3]是一个10x3的tensor，代表的是10个样本，每个样本对应三个类别的概率，现在需要对每一个样本得到概率最大的那个类别
-            outputs[3] = torch.argmax(outputs[3], dim=1).float()
+            # outputs[3] = torch.argmax(outputs[3], dim=1).float()
             loss, mask_loss, contour_loss, dist_loss, cls_loss = criterion(
                 outputs[0], outputs[1], outputs[2], outputs[3], targets[0], targets[1], targets[2], targets[3]
             )
