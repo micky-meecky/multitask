@@ -82,8 +82,8 @@ def create_train_arg_parser():
     parser.add_argument("--object_type", type=str, default='dataset', help="Dataset.")
     parser.add_argument("--distance_type", type=str, default="dist_mask", help="distance transform type - dist_mask,dist_contour,dist_signed")
 
-    parser.add_argument("--batch_size", type=int, default=80, help="train batch size")
-    parser.add_argument("--val_batch_size", type=int, default=160, help="validation batch size")
+    parser.add_argument("--batch_size", type=int, default=40, help="train batch size")
+    parser.add_argument("--val_batch_size", type=int, default=80, help="validation batch size")
     parser.add_argument("--num_epochs", type=int, default=1000, help="number of epochs")
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
