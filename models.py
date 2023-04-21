@@ -505,7 +505,7 @@ class UNet_ConvMCD(nn.Module):
             else:
                 x_out1 = torch.sigmoid(x_out1)
                 x_out2 = torch.sigmoid(x_out2)
-            x_out3 = torch.sigmoid(x_out3)
+            x_out3 = F.log_softmax(x_out3, dim=1)
             x_out4 = x_out4.view(x_out4.size(0), -1)  # 将特征图转换为一个特征向量view的第一个参数是batch_size，-1表示自适应
             x_out4 = F.relu(self.fc1(x_out4))
             x_out4 = self.fc2(x_out4)
@@ -514,7 +514,8 @@ class UNet_ConvMCD(nn.Module):
 
 
         # return x_out,x_out1,x_out2,x_out3
-        return [x_out1, x_out2, x_out3, x_out4]
+        # return [x_out1, x_out2, x_out3, x_out4]
+        return [x_out1, x_out2, x_out4]
 
 
 if __name__ == '__main__':

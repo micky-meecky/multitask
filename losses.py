@@ -39,7 +39,6 @@ class LossMulti:
                     torch.log((intersection + eps) / (union - intersection + eps))
                     * self.jaccard_weight
                 )
-
         return loss
 
 class LossUNet:
@@ -91,24 +90,26 @@ class LossPsiNet:
 
         self.criterion1 = LossMulti(jaccard_weight=jaccard_weight, class_weights=None, num_classes=num_classes, device=device)
         self.criterion2 = LossMulti(jaccard_weight=jaccard_weight, class_weights=None, num_classes=num_classes, device=device)
-        self.criterion3 = nn.MSELoss()
+        self.criterion3 = LossMulti(jaccard_weight=jaccard_weight, class_weights=None, num_classes=num_classes, device=device)
         self.criterion4 = nn.CrossEntropyLoss()
         self.weights = weights
 
-    def __call__(self, outputs1, outputs2, outputs3, outputs4, targets1, targets2, targets3, targets4):
+    # def __call__(self, outputs1, outputs2, outputs3, outputs4, targets1, targets2, targets3, targets4):
 
+    def __call__(self, outputs1, outputs2, outputs4, targets1, targets2, targets4):
         mask_loss = self.weights[0] * self.criterion1(outputs1, targets1)
         contour_loss = self.weights[1] * self.criterion2(outputs2, targets2)
-        dist_loss = self.weights[2] * self.criterion3(outputs3, targets3)
-        # targets4 = targets4.float()
+        # dist_loss = self.weights[2] * self.criterion3(outputs3, targets3)
         # targets4 和 outputs4 都要加1，为了防止出现0
-        # targets4 = targets4 + 1.0
-        # outputs4 = outputs4 + 1.0
+        targets4 = targets4.float()
+        targets4 = targets4 + 1.0
+        outputs4 = outputs4 + 1.0
         cls_loss = self.weights[3] * self.criterion4(outputs4, targets4)
 
-        criterion = mask_loss + contour_loss + dist_loss + cls_loss
+        # criterion = mask_loss + contour_loss + dist_loss + cls_loss
+        criterion = mask_loss + contour_loss + cls_loss
 
-        return criterion, mask_loss, contour_loss, dist_loss, cls_loss
+        return criterion, mask_loss, contour_loss, cls_loss
 
 class LossSoftDice(nn.Module):
     def __init__(self, weight=None, size_average=True):

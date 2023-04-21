@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 
-def train_model(model, inputs, targets, model_type, criterion, optimizer):
+def train_model(model, inputs, targets, model_type, is_use_dist, criterion, optimizer):
 
     if model_type == "unet":
 
@@ -44,17 +44,27 @@ def train_model(model, inputs, targets, model_type, criterion, optimizer):
 
         with torch.set_grad_enabled(True):
             outputs = model(inputs)
-            # outputs[3]是一个10x3的tensor，代表的是10个样本，每个样本对应三个类别的概率，现在需要对每一个样本得到概率最大的那个类别
-            # outputs[3] = torch.argmax(outputs[3], dim=1).float()
-            loss, mask_loss, contour_loss, dist_loss, cls_loss = criterion(
-                outputs[0], outputs[1], outputs[2], outputs[3], targets[0], targets[1], targets[2], targets[3]
-            )
+            if not is_use_dist:
+                # outputs[3]是一个10x3的tensor，代表的是10个样本，每个样本对应三个类别的概率，现在需要对每一个样本得到概率最大的那个类别
+                outputs[2] = torch.argmax(outputs[2], dim=1)
+                    # .float()
+                loss, mask_loss, contour_loss, cls_loss = criterion(
+                    outputs[0], outputs[1], outputs[2], targets[0], targets[1], targets[3]
+                )
+            else:
+                # outputs[3]是一个10x3的tensor，代表的是10个样本，每个样本对应三个类别的概率，现在需要对每一个样本得到概率最大的那个类别
+                outputs[3] = torch.argmax(outputs[3], dim=1)
+                # .float()
+                loss, mask_loss, contour_loss, dist_loss, cls_loss = criterion(
+                    outputs[0], outputs[1], outputs[2], outputs[3], targets[0], targets[1], targets[2], targets[3]
+                )
             loss.backward()
             optimizer.step()
 
-
-
-    return loss, outputs, mask_loss, contour_loss, dist_loss, cls_loss
+    if is_use_dist:
+        return loss, outputs, mask_loss, contour_loss, dist_loss, cls_loss
+    else:
+        return loss, outputs, mask_loss, contour_loss, cls_loss
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 50, fill = '█',content =None):
     """

@@ -16,7 +16,7 @@ from torch import optim
 from torch import nn
 from torch.optim import lr_scheduler
 from tensorboardX import SummaryWriter
-from skorch import NeuralNetRegressor
+# from skorch import NeuralNetRegressor
 from skorch.helper import SliceDataset
 from sklearn.model_selection import RandomizedSearchCV
 import torch.nn.functional as F
@@ -110,6 +110,7 @@ class Solver(object):
             'batch_size': [8, 16, 32],
             # Add more hyperparameters here
         }
+        self.is_use_dist = config.is_use_dist
         self.num_samples = config.num_samples
         self.cv = config.cv
         self.verbose = config.verbose
@@ -275,7 +276,7 @@ class Solver(object):
         img = img * 255
         return img
 
-    def define_loss(self, model_type, loss_type, weights=[0.5, 0.1, 0.1, 0.3]):
+    def define_loss(self, model_type, loss_type, weights=[0, 0, 0, 1]):
         if model_type == "unet":
             if loss_type == "Dice":
                 criterion = LossSoftDice(weights)
@@ -385,8 +386,15 @@ class Solver(object):
 
                     targets = [targets1, targets2, targets3, targets4]
 
-                    loss, output, mask_loss, contour_loss, dist_loss, cls_loss = train_model(self.unet, inputs, targets, self.model_type, self.criterion, self.optimizer)
-
+                    if self.is_use_dist:
+                        loss, output, mask_loss, contour_loss, dist_loss, cls_loss\
+                            = train_model(self.unet, inputs, targets, self.model_type, self.is_use_dist,
+                                          self.criterion, self.optimizer)
+                    else:
+                        loss, output, mask_loss, contour_loss, cls_loss \
+                            = train_model(self.unet, inputs, targets, self.model_type, self.is_use_dist,
+                                          self.criterion, self.optimizer)
+                        dist_loss = 0
                     length += 1
                     Iter += 1
                     writer.add_scalars('Loss', {'loss': loss}, Iter)  # 往文件里写进度
@@ -401,7 +409,8 @@ class Solver(object):
                     print_content = 'batch_total_loss:' + str(loss.data.cpu().numpy())
                     print_content += ' mask_loss:' + str(mask_loss.data.cpu().numpy())
                     print_content += ' contour_loss:' + str(contour_loss.data.cpu().numpy())
-                    print_content += ' dist_loss:' + str(dist_loss.data.cpu().numpy())
+                    if self.is_use_dist:
+                        print_content += ' dist_loss:' + str(dist_loss.data.cpu().numpy())
                     print_content += ' cls_loss:' + str(cls_loss.data.cpu().numpy())
                     printProgressBar(i + 1, train_len, content=print_content)
 
@@ -462,8 +471,9 @@ class Solver(object):
                     acc, SE, SP, PC, DC, IOU, cls_acc = self.test_tta(mode='valid')
                 # valid_record = np.vstack((valid_record, np.array([epoch + 1, Iter, acc, SE, SP, PC, DC, IOU, cls_acc])))
                 valid_record = np.vstack((valid_record, np.array([epoch + 1 + int(epoch_start), Iter, acc, SE, SP, PC, DC, IOU, cls_acc])))
-                # unet_score = 1.0 * cls_acc  # TODO
-                unet_score = 1.0 * IOU  # TODO
+                unet_score = 1.0 * cls_acc  # TODO
+                test_record = []
+                # unet_score = 1.0 * IOU  # TODO
                 # writer.add_scalars('Valid', {'Dice': DC, 'IOU': IOU, 'acc': acc, 'SE': SE, 'SP': SP, 'PC': PC, 'Cls_acc': cls_acc}, epoch)
                 writer.add_scalars('Valid', {'Dice': DC, 'IOU': IOU, 'acc': acc, 'SE': SE, 'SP': SP, 'PC': PC, 'Cls_acc': cls_acc},
                                    epoch + int(epoch_start))
@@ -591,14 +601,15 @@ class Solver(object):
         distlength = 0
         distdetail_result = []
 
-        valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU', 'Cls_acc'])
+        valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
         con_valid_record = np.array(['id', 'acc', 'SE', 'SP', 'PC', 'Dice', 'IOU'])
         condetail_result.append(con_valid_record)
         distdetail_result.append(con_valid_record)
         detail_result = []
         detail_result.append(valid_record)
 
-
+        total_clsacc = 0.
+        cls_acc_id = 0
         with torch.no_grad():
             for i, sample in enumerate(data_loader):
                 (img_file_name, inputs, targets1, targets2, targets3, targets4) = sample
@@ -614,12 +625,15 @@ class Solver(object):
                 SR = self.unet(inputs)
                 SR_contour = SR[1]              # SR_contour 是一个tensor
                 SR_contour1 = SR_contour.data.cpu().numpy()
+                if self.is_use_dist:
+                    SR_dist = SR[2]                 # SR_dist 是一个tensor
+                    SR_dist1 = SR_dist.data.cpu().numpy()
 
-                SR_dist = SR[2]                 # SR_dist 是一个tensor
-                SR_dist1 = SR_dist.data.cpu().numpy()
+                    SR_cls = torch.argmax(SR[3], dim=1)                  # SR_cls 是一个tensor
+                    SR_cls1 = SR_cls.data.cpu().numpy()
 
-                SR_cls = torch.argmax(SR[3], dim=1)                  # SR_cls 是一个tensor
-                SR_cls1 = SR_cls.data.cpu().numpy()
+                else:
+                    SR_cls = torch.argmax(SR[2], dim=1)
 
                 SR = SR[0]                   # SR 是一个tensor
                 SR1 = SR.data.cpu().numpy()  # SR1 是一个numpy数组
@@ -629,8 +643,14 @@ class Solver(object):
                     SR_cls = SR_cls.data.cpu().numpy()
                     targets4 = targets4.data.cpu().numpy()
 
+                    if i == 0:
+                        self.myprint(SR_cls)
+                        self.myprint(targets4)
+
                     corr = np.sum(SR_cls == targets4)
                     cls_acc = float(corr) / float(SR_cls.shape[0])
+                    total_clsacc += cls_acc
+                    cls_acc_id += 1
 
 
                     if SR.shape[1] == 1:
@@ -658,19 +678,19 @@ class Solver(object):
                     torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
                                                                                         '%s_%d_image_contour.png' % (mode, i)),
                                                     nrow=self.batch_size)
-
-                    if SR_dist.shape[1] == 1:
-                        threshold = 0.5
-                        device = SR_dist.device
-                        SR_dist_binary = torch.where(SR_dist > threshold, torch.tensor(1.0, device=device),
-                                                        torch.tensor(0.0, device=device))
-                        images_all = torch.cat((inputs, SR_dist_binary, targets3), 0)
-                    else:
-                        SRc = SR_dist[:, 0:1, :, :]
-                        images_all = torch.cat((inputs, SRc, targets3), 0)
-                    torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
-                                                                                        '%s_%d_image_contour.png' % (mode, i)),
-                                                    nrow=self.batch_size)
+                    if self.is_use_dist:
+                        if SR_dist.shape[1] == 1:
+                            threshold = 0.5
+                            device = SR_dist.device
+                            SR_dist_binary = torch.where(SR_dist > threshold, torch.tensor(1.0, device=device),
+                                                            torch.tensor(0.0, device=device))
+                            images_all = torch.cat((inputs, SR_dist_binary, targets3), 0)
+                        else:
+                            SRc = SR_dist[:, 0:1, :, :]
+                            images_all = torch.cat((inputs, SRc, targets3), 0)
+                        torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
+                                                                                            '%s_%d_image_contour.png' % (mode, i)),
+                                                        nrow=self.batch_size)
 
 
                 # SR1 = SR1.data.cpu().numpy()
@@ -678,7 +698,8 @@ class Solver(object):
                 # SR_contour1 = SR_contour1.data.cpu().numpy()
                 targets2 = targets2.data.cpu().numpy()
                 # SR_dist1 = SR_dist1.data.cpu().numpy()
-                targets3 = targets3.data.cpu().numpy()
+                if self.is_use_dist:
+                    targets3 = targets3.data.cpu().numpy()
 
 
                 for i in range(SR.shape[0]):
@@ -696,8 +717,7 @@ class Solver(object):
                                            ev.get_specificity(SR_tmp, GT_tmp),
                                            ev.get_precision(SR_tmp, GT_tmp),
                                            ev.get_DC(SR_tmp, GT_tmp),
-                                           ev.get_IOU(SR_tmp, GT_tmp),
-                                           float(cls_acc)])
+                                           ev.get_IOU(SR_tmp, GT_tmp)])
                                            # ev.get_clsaccuracy(lable_idx, class_GT)])
 
                     acc += result_tmp[1]
@@ -706,7 +726,7 @@ class Solver(object):
                     PC += result_tmp[4]
                     DC += result_tmp[5]
                     IOU += result_tmp[6]
-                    Cls_acc += result_tmp[7]
+                    # Cls_acc += result_tmp[7]
                     detail_result.append(result_tmp)
 
                     length += 1
@@ -728,7 +748,6 @@ class Solver(object):
                                            ev.get_precision(SR_tmp, GT_tmp),
                                            ev.get_DC(SR_tmp, GT_tmp),
                                            ev.get_IOU(SR_tmp, GT_tmp)])
-                                           # ev.get_clsaccuracy(lable_idx, class_GT)])
 
                     conacc += result_tmp[1]
                     conSE += result_tmp[2]
@@ -736,40 +755,37 @@ class Solver(object):
                     conPC += result_tmp[4]
                     conDC += result_tmp[5]
                     conIOU += result_tmp[6]
-                    # Cls_acc += result_tmp[7]
                     condetail_result.append(result_tmp)
 
                     length += 1
+                if self.is_use_dist:
+                    # for dist
+                    for i in range(SR_dist.shape[0]):
+                        SR_tmp = SR_dist1[i, :].reshape(-1)
+                        GT_tmp = targets3[i, :].reshape(-1)
+                        tmp_index = images_path[i].split('/')[-1].split('\\')[-1]
+                        tmp_index = int(tmp_index.split('.')[0][:])
 
-                # for dist
-                for i in range(SR_dist.shape[0]):
-                    SR_tmp = SR_dist1[i, :].reshape(-1)
-                    GT_tmp = targets3[i, :].reshape(-1)
-                    tmp_index = images_path[i].split('/')[-1].split('\\')[-1]
-                    tmp_index = int(tmp_index.split('.')[0][:])
+                        SR_tmp = torch.from_numpy(SR_tmp).to(self.device)
+                        GT_tmp = torch.from_numpy(GT_tmp).to(self.device)
 
-                    SR_tmp = torch.from_numpy(SR_tmp).to(self.device)
-                    GT_tmp = torch.from_numpy(GT_tmp).to(self.device)
+                        result_tmp = np.array([tmp_index,
+                                               ev.get_accuracy(SR_tmp, GT_tmp),
+                                               ev.get_sensitivity(SR_tmp, GT_tmp),
+                                               ev.get_specificity(SR_tmp, GT_tmp),
+                                               ev.get_precision(SR_tmp, GT_tmp),
+                                               ev.get_DC(SR_tmp, GT_tmp),
+                                               ev.get_IOU(SR_tmp, GT_tmp)])
 
-                    result_tmp = np.array([tmp_index,
-                                           ev.get_accuracy(SR_tmp, GT_tmp),
-                                           ev.get_sensitivity(SR_tmp, GT_tmp),
-                                           ev.get_specificity(SR_tmp, GT_tmp),
-                                           ev.get_precision(SR_tmp, GT_tmp),
-                                           ev.get_DC(SR_tmp, GT_tmp),
-                                           ev.get_IOU(SR_tmp, GT_tmp)])
-                                           # ev.get_clsaccuracy(lable_idx, class_GT)])
+                        distacc += result_tmp[1]
+                        distSE += result_tmp[2]
+                        distSP += result_tmp[3]
+                        distPC += result_tmp[4]
+                        distDC += result_tmp[5]
+                        distIOU += result_tmp[6]
+                        condetail_result.append(result_tmp)
 
-                    distacc += result_tmp[1]
-                    distSE += result_tmp[2]
-                    distSP += result_tmp[3]
-                    distPC += result_tmp[4]
-                    distDC += result_tmp[5]
-                    distIOU += result_tmp[6]
-                    # Cls_acc += result_tmp[7]
-                    condetail_result.append(result_tmp)
-
-                    length += 1
+                        length += 1
 
         accuracy = acc / length
         sensitivity = SE / length
@@ -777,7 +793,6 @@ class Solver(object):
         precision = PC / length
         disc = DC / length
         iou = IOU / length
-        # cls_acc = Cls_acc / length
         detail_result = np.array(detail_result)
 
         conaccuracy = conacc / length
@@ -786,18 +801,18 @@ class Solver(object):
         conprecision = conPC / length
         condisc = conDC / length
         coniou = conIOU / length
-        # cls_acc = Cls_acc / length
         condetail_result = np.array(condetail_result)
 
-        distaccuracy = distacc / length
-        distsensitivity = distSE / length
-        distspecificity = distSP / length
-        distprecision = distPC / length
-        distdisc = distDC / length
-        distiou = distIOU / length
-        # cls_acc = Cls_acc / length
-        distdetail_result = np.array(distdetail_result)
+        if self.is_use_dist:
+            distaccuracy = distacc / length
+            distsensitivity = distSE / length
+            distspecificity = distSP / length
+            distprecision = distPC / length
+            distdisc = distDC / length
+            distiou = distIOU / length
+            distdetail_result = np.array(distdetail_result)
 
+        class_acc = total_clsacc / cls_acc_id
         # print('conaccuracy = ', conaccuracy)
         # print('consensitivity = ', consensitivity)
         # print('conspecificity = ', conspecificity)
@@ -825,7 +840,7 @@ class Solver(object):
             writer.close()
 
         # 将distdetail_result的结果保存到distdetail_result.xlsx中
-        if (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
+        if self.is_use_dist and (self.save_detail_result):  # detail_result = [id, acc, SE, SP, PC, dsc, IOU]
             txt_save_path = os.path.join(self.result_path, mode + '_pre_detail_dist_result.xlsx')
             writer = pd.ExcelWriter(txt_save_path)
             distdetail_result = pd.DataFrame(distdetail_result)
@@ -834,60 +849,60 @@ class Solver(object):
             writer.close()
 
 
-        return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
+        return accuracy, sensitivity, specificity, precision, disc, iou, class_acc
 
         # return accuracy, sensitivity, specificity, precision, disc, iou
 
         # return accuracy, sensitivity, specificity, precision, disc, iou, cls_acc
-
-    def hyper_search(self, devLoader, testLoader):
-        print('hyper_search')
-        train_data = next(iter(self.train_loader))
-        X_train, y_train = train_data[1], train_data[2]
-        X_dev_data = next(iter(devLoader))
-        X_dev, y_dev = X_dev_data[1], X_dev_data[2]
-
-        net = UNet(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True,
-             dropout=True)
-        criterion = LossUNet(0, num_classes=self.num_classes)
-        net = NeuralNetRegressor(
-            module=net,
-            max_epochs=10,
-            batch_size=10,
-            optimizer=torch.optim.Adam,
-            criterion=criterion,
-            lr=0.001,
-            device=self.device,
-            train_split=SliceDataset,
-            iterator_train__shuffle=True,
-            iterator_train__num_workers=0,
-            iterator_valid__shuffle=False,
-            iterator_valid__num_workers=0,
-            verbose=2,
-        )
-        # 设置joblib启动方式为forkserver
-        # net.initialize()
-        # net.initialize_optimizer()
-        # net.initialize_criterion()
-        # net.initialize_callbacks()
-        # net._initialize_module()
-
-        search = RandomizedSearchCV(
-            net,
-            self.param_distributions,
-            n_iter=self.num_samples,
-            scoring='r2',
-            cv=self.cv,
-            refit=True,
-            verbose=self.verbose,
-            n_jobs=4,
-
-        )
-
-        search.fit(X_train, y_train)
-
-        best_params = search.best_params_
-        print(f"Best hyperparameters: {best_params}")
+    #
+    # def hyper_search(self, devLoader, testLoader):
+    #     print('hyper_search')
+    #     train_data = next(iter(self.train_loader))
+    #     X_train, y_train = train_data[1], train_data[2]
+    #     X_dev_data = next(iter(devLoader))
+    #     X_dev, y_dev = X_dev_data[1], X_dev_data[2]
+    #
+    #     net = UNet(input_channels=self.img_ch, num_classes=self.num_classes, padding_mode='reflect', add_output=True,
+    #          dropout=True)
+    #     criterion = LossUNet(0, num_classes=self.num_classes)
+    #     net = NeuralNetRegressor(
+    #         module=net,
+    #         max_epochs=10,
+    #         batch_size=10,
+    #         optimizer=torch.optim.Adam,
+    #         criterion=criterion,
+    #         lr=0.001,
+    #         device=self.device,
+    #         train_split=SliceDataset,
+    #         iterator_train__shuffle=True,
+    #         iterator_train__num_workers=0,
+    #         iterator_valid__shuffle=False,
+    #         iterator_valid__num_workers=0,
+    #         verbose=2,
+    #     )
+    #     # 设置joblib启动方式为forkserver
+    #     # net.initialize()
+    #     # net.initialize_optimizer()
+    #     # net.initialize_criterion()
+    #     # net.initialize_callbacks()
+    #     # net._initialize_module()
+    #
+    #     search = RandomizedSearchCV(
+    #         net,
+    #         self.param_distributions,
+    #         n_iter=self.num_samples,
+    #         scoring='r2',
+    #         cv=self.cv,
+    #         refit=True,
+    #         verbose=self.verbose,
+    #         n_jobs=4,
+    #
+    #     )
+    #
+    #     search.fit(X_train, y_train)
+    #
+    #     best_params = search.best_params_
+    #     print(f"Best hyperparameters: {best_params}")
 
 
 

@@ -128,7 +128,7 @@ def main(args):
             #     solver.hyper_search(devLoader, testLoader)
             #     print("Finished Hyper Search")
             #     return
-            solver = Solver(args, trainLoader, devLoader, testLoader)
+            solver = Solver(args, testLoader, devLoader, testLoader)
             solver.train()
 
     print("Finished Training")
