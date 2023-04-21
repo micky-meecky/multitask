@@ -1,0 +1,14 @@
+2023-04-14 09:50
+Ä£ÐÍ×Ü´óÐ¡Îª£º29.975MB
+(31407876, 7851969, 23696, 5906, 29.975482940673828)
+Number of parameter: 7.85M
+-----------------------unetDCAN_01_f1-----------------------------
+Training...
+enumerating
+Epoch [1/800], Loss: 0.7187593801
+[Validation] Acc: 0.0972, SE: 0.8051, SP: 0.0300, PC: 0.0715, Dice: 0.1218, IOU: 0.0712
+Best model in epoch 1, score : 0.0712
+[0;32;50mper epoch testing&vlidation cost Time 00 h:00 m:53 s[0m
+[0;32;50mper whole epoch cost Time 00 h:09 m:03 s[0m
+[0;32;50mperhaps need Time 120 h:30 m:57 s[0m
+enumerating
