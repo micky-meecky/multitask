@@ -106,11 +106,13 @@ def main(args):
                 batch_size=args.batch_size,
                 # batch_size=50,
                 num_workers=5,
+                shuffle=True,
             )
             devLoader = DataLoader(
                 DatasetImageMaskContourDist(val_file_names, args.distance_type, args.normal_flag),
                 batch_size=args.val_batch_size,
                 num_workers=5,
+                shuffle=True,
             )
             displayLoader = DataLoader(
                 DatasetImageMaskContourDist(val_file_names, args.distance_type, args.normal_flag),
@@ -121,6 +123,7 @@ def main(args):
                 DatasetImageMaskContourDist(test_file_names, args.distance_type, args.normal_flag),
                 num_workers=5,
                 batch_size=10,
+                shuffle=True,
             )
             # solver = Solver(args, testLoader, devLoader, testLoader)
 

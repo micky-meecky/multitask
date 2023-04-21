@@ -509,7 +509,7 @@ class UNet_ConvMCD(nn.Module):
             x_out4 = x_out4.view(x_out4.size(0), -1)  # 将特征图转换为一个特征向量view的第一个参数是batch_size，-1表示自适应
             x_out4 = F.relu(self.fc1(x_out4))
             x_out4 = self.fc2(x_out4)
-            x_out4 = F.softmax(x_out4, dim=1)
+            # x_out4 = F.softmax(x_out4, dim=1)
 
 
 
