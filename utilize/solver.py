@@ -689,7 +689,7 @@ class Solver(object):
                             SRc = SR_dist[:, 0:1, :, :]
                             images_all = torch.cat((inputs, SRc, targets3), 0)
                         torchvision.utils.save_image(images_all.data.cpu(), os.path.join(self.result_path, 'images',
-                                                                                            '%s_%d_image_contour.png' % (mode, i)),
+                                                                                            '%s_%d_image_dist.png' % (mode, i)),
                                                         nrow=self.batch_size)
 
 
