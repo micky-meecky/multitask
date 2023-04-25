@@ -88,7 +88,7 @@ def create_train_arg_parser():
     parser.add_argument("--cuda_no", type=int, default=0, help="cuda number")
     parser.add_argument('--DataParallel', type=bool, default=True)  # 是否使用多gpu训练
 
-    parser.add_argument("--lr", type=float, default=1, help="learning rate")
+    parser.add_argument("--lr", type=float, default=1e-4, help="learning rate")
     parser.add_argument('--lr_low', type=float, default=1e-12)# 最小学习率,设置为None,则为最大学习率的1e+6分之一(不可设置为0)
     parser.add_argument('--lr_warm_epoch', type=int, default=10)  # warmup的epoch数,一般就是5~20,为0或False则不使用
     parser.add_argument('--lr_cos_epoch', type=int, default=600)  # cos退火的epoch数,一般就是总epoch数-warmup的数,为0或False则代表不使用
