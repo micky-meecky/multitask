@@ -88,9 +88,6 @@ class ContourDistance():
             f.close()
 
 
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="train setup for segmentation")
     parser.add_argument("--train_path", type=str, default='./train_path/p_images/', help="path to img png files")
@@ -98,13 +95,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_contour_path", type=str, default='./train_path/p_contour/', help="contour png")
     parser.add_argument("--project_name", type=str, default='contoursaving ', help="project name")
     parser.add_argument("--log_path", type=str, default='./train_path/', help="project name")
-
-
-
-
     config = parser.parse_args()
     contour = ContourDistance(config)
 
-
-    pass
 

@@ -689,6 +689,7 @@ def DivideData(config):
     print("validation_set: ", len(validation_set))
     print("test_set: ", len(test_set))
 
+
 if __name__ == "__main__":
     # 读取配置文件，以及创建各个轮廓图距离图并保存
     parser = argparse.ArgumentParser(description="train setup for segmentation")
@@ -718,7 +719,6 @@ if __name__ == "__main__":
     parser.add_argument("--save_fold_path", type=str, default='./train_path/fold/', help="fold path")
     parser.add_argument("--save_fold_path_f1", type=str, default='./train_path/fold_D1/', help="fold path")
 
-
     # parser.add_argument("--random_state", type=int, default=1, help="random state")
     # parser.add_argument("--batch_size", type=int, default=1, help="batch size")
     # parser.add_argument("--num_workers", type=int, default=0, help="num workers")
@@ -727,5 +727,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     config = args
-    # CreateContourDistance(config)
+    CreateContourDistance(config)
     DivideData(config)

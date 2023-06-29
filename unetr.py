@@ -5,31 +5,31 @@ import torch.nn.functional as F
 import math
 
 
-class SingleDeconv3DBlock(nn.Module):
+class SingleDeconv2DBlock(nn.Module):
     def __init__(self, in_planes, out_planes):
         super().__init__()
-        self.block = nn.ConvTranspose3d(in_planes, out_planes, kernel_size=2, stride=2, padding=0, output_padding=0)
+        self.block = nn.ConvTranspose2d(in_planes, out_planes, kernel_size=2, stride=2, padding=0, output_padding=0)
 
     def forward(self, x):
         return self.block(x)
 
 
-class SingleConv3DBlock(nn.Module):
+class SingleConv2DBlock(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size):
         super().__init__()
-        self.block = nn.Conv3d(in_planes, out_planes, kernel_size=kernel_size, stride=1,
+        self.block = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=1,
                                padding=((kernel_size - 1) // 2))
 
     def forward(self, x):
         return self.block(x)
 
 
-class Conv3DBlock(nn.Module):
+class Conv2DBlock(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size=3):
         super().__init__()
         self.block = nn.Sequential(
-            SingleConv3DBlock(in_planes, out_planes, kernel_size),
-            nn.BatchNorm3d(out_planes),
+            SingleConv2DBlock(in_planes, out_planes, kernel_size),
+            nn.BatchNorm2d(out_planes),
             nn.ReLU(True)
         )
 
@@ -37,13 +37,13 @@ class Conv3DBlock(nn.Module):
         return self.block(x)
 
 
-class Deconv3DBlock(nn.Module):
+class Deconv2DBlock(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size=3):
         super().__init__()
         self.block = nn.Sequential(
-            SingleDeconv3DBlock(in_planes, out_planes),
-            SingleConv3DBlock(out_planes, out_planes, kernel_size),
-            nn.BatchNorm3d(out_planes),
+            SingleDeconv2DBlock(in_planes, out_planes),
+            SingleConv2DBlock(out_planes, out_planes, kernel_size),
+            nn.BatchNorm2d(out_planes),
             nn.ReLU(True)
         )
 
@@ -131,7 +131,7 @@ class Embeddings(nn.Module):
         self.n_patches = int((cube_size[0] * cube_size[1] * cube_size[2]) / (patch_size * patch_size * patch_size))
         self.patch_size = patch_size
         self.embed_dim = embed_dim
-        self.patch_embeddings = nn.Conv3d(in_channels=input_dim, out_channels=embed_dim,
+        self.patch_embeddings = nn.Conv2d(in_channels=input_dim, out_channels=embed_dim,
                                           kernel_size=patch_size, stride=patch_size)
         self.position_embeddings = nn.Parameter(torch.zeros(1, self.n_patches, embed_dim))
         self.dropout = nn.Dropout(dropout)
@@ -222,56 +222,56 @@ class UNETR(nn.Module):
         # U-Net Decoder
         self.decoder0 = \
             nn.Sequential(
-                Conv3DBlock(input_dim, 32, 3),
-                Conv3DBlock(32, 64, 3)
+                Conv2DBlock(input_dim, 32, 3),
+                Conv2DBlock(32, 64, 3)
             )
 
         self.decoder3 = \
             nn.Sequential(
-                Deconv3DBlock(embed_dim, 512),
-                Deconv3DBlock(512, 256),
-                Deconv3DBlock(256, 128)
+                Deconv2DBlock(embed_dim, 512),
+                Deconv2DBlock(512, 256),
+                Deconv2DBlock(256, 128)
             )
 
         self.decoder6 = \
             nn.Sequential(
-                Deconv3DBlock(embed_dim, 512),
-                Deconv3DBlock(512, 256),
+                Deconv2DBlock(embed_dim, 512),
+                Deconv2DBlock(512, 256),
             )
 
         self.decoder9 = \
-            Deconv3DBlock(embed_dim, 512)
+            Deconv2DBlock(embed_dim, 512)
 
         self.decoder12_upsampler = \
-            SingleDeconv3DBlock(embed_dim, 512)
+            SingleDeconv2DBlock(embed_dim, 512)
 
         self.decoder9_upsampler = \
             nn.Sequential(
-                Conv3DBlock(1024, 512),
-                Conv3DBlock(512, 512),
-                Conv3DBlock(512, 512),
-                SingleDeconv3DBlock(512, 256)
+                Conv2DBlock(1024, 512),
+                Conv2DBlock(512, 512),
+                Conv2DBlock(512, 512),
+                SingleDeconv2DBlock(512, 256)
             )
 
         self.decoder6_upsampler = \
             nn.Sequential(
-                Conv3DBlock(512, 256),
-                Conv3DBlock(256, 256),
-                SingleDeconv3DBlock(256, 128)
+                Conv2DBlock(512, 256),
+                Conv2DBlock(256, 256),
+                SingleDeconv2DBlock(256, 128)
             )
 
         self.decoder3_upsampler = \
             nn.Sequential(
-                Conv3DBlock(256, 128),
-                Conv3DBlock(128, 128),
-                SingleDeconv3DBlock(128, 64)
+                Conv2DBlock(256, 128),
+                Conv2DBlock(128, 128),
+                SingleDeconv2DBlock(128, 64)
             )
 
         self.decoder0_header = \
             nn.Sequential(
-                Conv3DBlock(128, 64),
-                Conv3DBlock(64, 64),
-                SingleConv3DBlock(64, output_dim, 1)
+                Conv2DBlock(128, 64),
+                Conv2DBlock(64, 64),
+                SingleConv2DBlock(64, output_dim, 1)
             )
 
     def forward(self, x):
