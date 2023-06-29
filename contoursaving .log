@@ -226,3 +226,13 @@ Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/',
 
 *********************************
 
+Processed 780 images contoursaving successfully.
+Benign: 872, Malignant: 420, Normal: 266
+Total: 1558
+
+Namespace(train_path='./train_path/p_images/', mask_path='./train_path/p_mask/', save_contour_path='./train_path/p_contour/', save_distance_path='./train_path/p_distance/', project_name='contoursaving ', log_path='./train_path/', csv_file='./train_path/train.csv', image_path='./train_path/p_image/', contour_flag=True, distance_flag=True, save_distance_path_D1='./train_path/p_distance_D1/', save_distance_path_D2='./train_path/p_distance_D2/', save_distance_path_D3='./train_path/p_distance_D3/', K=5, fold=5, validation=False, validation_r=0.2, divide_log_name='./train_path/divide_log', save_fold_path='./train_path/fold/', save_fold_path_f1='./train_path/fold_D1/')
+
+2023-06-29 14:38:26.290362
+
+*********************************
+
